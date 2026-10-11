@@ -27,9 +27,11 @@ isolation, incident response and systems thinking.
   past, what follows in the present, what it means for the future).
 - **XR layer** — `src/xr/` renders three era dioramas with ViroReact primitives.
   Objects and destination markers are directly tappable; a floating console
-  handles chapters, undo, explicit save and keeper hints. Phone AR anchors the
-  scene to a real plane; Quest runs the same scene in an immersive
-  `ViroXRSceneNavigator` context.
+  handles chapters, undo, explicit save and keeper hints. A placement chime and
+  a hazard crackle make consequences audible. Phone AR anchors the scene to a
+  real plane; on Quest the same scene runs rooted in `ViroARScene`, so Horizon OS
+  passthrough + plane detection turn it into mixed reality. If a phone reports
+  no AR response, the app offers the logic lab instead of a black screen.
 - **2D logic lab** — `src/timefold/LogicLab.tsx` runs the identical domain code in
   a flat, hardware-free surface (also on web) for testing rules, checkpoints and
   keeper replies.
@@ -44,6 +46,13 @@ isolation, incident response and systems thinking.
 
 Expo SDK 57 · React Native 0.86 · Expo Router · @reactvision/react-viro 3.0 ·
 Supabase Edge Functions (Deno) · PostgreSQL (RPC quota store) · Zod · node:test
+
+## Try it
+
+- **Sideload** — install `app-release.apk` (Android/Quest): `adb install app-release.apk`,
+  approve the security prompt, launch **TimeFold**, tap *Enter the observatory*.
+  Phones need ARCore; without it the app routes to the 2D logic lab.
+- **Demo video** — see the pinned release / submission link.
 
 ## Run it
 

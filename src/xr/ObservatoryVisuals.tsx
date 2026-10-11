@@ -21,17 +21,20 @@ ViroMaterials.createMaterials({
   tfPast: { diffuseColor: '#a38f69' },
   tfPresent: { diffuseColor: '#596b62' },
   tfFuture: { diffuseColor: '#839e8e' },
-  tfBrass: { diffuseColor: '#c6a065' },
+  tfBrass: { diffuseColor: '#c6a065', lightingModel: 'Blinn', shininess: 42 },
   tfDark: { diffuseColor: '#182323' },
-  tfGlass: { diffuseColor: '#5e8995' },
+  tfGlass: { diffuseColor: '#5e8995', lightingModel: 'Blinn', shininess: 90 },
   tfLight: { diffuseColor: '#e4c782', lightingModel: 'Constant' },
   tfSignal: { diffuseColor: '#8be0c4', lightingModel: 'Constant' },
   tfHazard: { diffuseColor: '#c96a52', lightingModel: 'Constant' },
   tfOvergrown: { diffuseColor: '#3d5a45' },
+  tfPanel: { diffuseColor: '#0e1514', lightingModel: 'Constant', blendMode: 'Alpha', alpha: 0.82 },
 });
 ViroAnimations.registerAnimations({
   tfGearSpin: { properties: { rotateZ: '+=360' }, duration: 5000 },
   tfBeaconPulse: { properties: { scaleX: '+=0.5', scaleY: '+=0.5', scaleZ: '+=0.5' }, duration: 1200 },
+  tfTargetPulse: { properties: { scaleX: '+=0.35', scaleY: '+=0.35', scaleZ: '+=0.35' }, duration: 900 },
+  tfSignalBurst: { properties: { scaleX: '+=7', scaleY: '+=7', opacity: '-=1' }, duration: 2400 },
 });
 
 function EraObservatory({ layer, interaction }: { layer: EraVisual; interaction: Interaction | null }) {
@@ -78,13 +81,28 @@ function EraObservatory({ layer, interaction }: { layer: EraVisual; interaction:
       <ViroBox position={[-0.27, 0.22, -0.25]} width={0.027} height={0.44} length={0.027} materials={layer.era === 'future' && !layer.powered ? 'tfOvergrown' : 'tfBrass'} />
       <ViroSphere position={[-0.27, 0.45, -0.25]} radius={0.045} widthSegmentCount={10} heightSegmentCount={8} materials={layer.era === 'future' && layer.powered ? 'tfLight' : 'tfDark'}
         animation={{ name: 'tfBeaconPulse', run: layer.era === 'future' && layer.powered, loop: true }} />
+      <ViroBox position={[0.22, 0.17, 0.07]} width={0.075} height={0.024} length={0.024} materials="tfDark" visible={state.gear === 'drive'} />
+      <ViroSphere position={[0.42, 1.08, -0.42]} radius={0.024} widthSegmentCount={10} heightSegmentCount={8} materials="tfSignal" visible={layer.aimed} />
+      {layer.era === 'future' && !layer.powered && (
+        <ViroNode>
+          <ViroSphere position={[-0.17, 0.47, 0.09]} radius={0.05} widthSegmentCount={8} heightSegmentCount={6} scale={[1, 0.55, 1]} materials="tfOvergrown" />
+          <ViroSphere position={[0.16, 0.52, -0.13]} radius={0.06} widthSegmentCount={8} heightSegmentCount={6} scale={[1, 0.5, 1]} materials="tfOvergrown" />
+          <ViroBox position={[0.31, 0.06, 0.12]} rotation={[0, 0, 18]} width={0.05} height={0.14} length={0.05} materials="tfOvergrown" />
+        </ViroNode>
+      )}
       <ViroSphere position={[0, 0.66, -0.28]} radius={0.023} widthSegmentCount={8} heightSegmentCount={6} materials="tfSignal" visible={layer.era === 'future' && layer.signalRecovered} />
       {layer.era === 'future' && layer.signalRecovered && (
-        <ViroBox position={[0.06, 0.62, -0.14]} rotation={[38, 0, 0]} width={0.012} height={0.012} length={0.6} materials="tfSignal" />
+        <ViroNode>
+          <ViroSphere position={[0, 0.66, -0.28]} radius={0.09} widthSegmentCount={16} heightSegmentCount={10} scale={[1, 1, 0.14]} materials="tfSignal"
+            animation={{ name: 'tfSignalBurst', run: true, loop: false }} />
+          <ViroBox position={[0.06, 0.62, -0.14]} rotation={[38, 0, 0]} width={0.012} height={0.012} length={0.6} materials="tfSignal" />
+          <ViroBox position={[-0.14, 0.34, -0.02]} rotation={[0, 0, -12]} width={0.008} height={0.62} length={0.008} materials="tfSignal" />
+        </ViroNode>
       )}
       {layer.era === 'past' && interaction?.selected && choiceTargets[interaction.selected].map((target, index) => target && (
         <ViroSphere key={`${interaction.selected}-${index}`} position={target} radius={0.035} widthSegmentCount={10} heightSegmentCount={8}
-          materials="tfSignal" onClick={() => interaction.onPlace(index)} viroTag={`target-${interaction.selected}-${index}`} />
+          materials="tfSignal" onClick={() => interaction.onPlace(index)} viroTag={`target-${interaction.selected}-${index}`}
+          animation={{ name: 'tfTargetPulse', run: true, loop: true }} />
       ))}
       <SceneLabel text={layer.label} position={[0, 0.89, 0.03]} width={0.78} height={0.12} color="#d7b47b" />
       <SceneLabel text={layer.year} position={[0, 0.76, 0.03]} width={0.65} height={0.18} color="#eee9df" size={0.8} />

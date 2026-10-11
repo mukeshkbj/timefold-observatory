@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import { ViroNode, ViroSound } from '@reactvision/react-viro';
+import { ViroBox, ViroNode, ViroOmniLight, ViroSound } from '@reactvision/react-viro';
 import { randomUUID } from 'expo-crypto';
 import { getFact, primaryFact, type KeeperRequest } from '../../shared/keeper';
 import { buildEraVisuals } from '../../shared/presentation';
@@ -66,10 +66,14 @@ export default function TimeFoldContent({ onExit }: { onExit: () => void }) {
   const trace = session.trace;
   const world = deriveWorld(session.game.state);
   return <ViroNode>
+    <ViroOmniLight color="#ffd9a8" intensity={430} position={[0, 2.0, 1.6]} attenuationStartDistance={0.5} attenuationEndDistance={4.2} />
+    <ViroOmniLight color="#9fd8c8" intensity={140} position={[0.6, 0.9, -0.8]} attenuationStartDistance={0.3} attenuationEndDistance={3} />
     <ObservatoryVisuals layers={buildEraVisuals(session.game.state)} interaction={{ selected: session.selected, highlights, onSelect: field => dispatch({ kind: 'select', field }), onPlace: index => dispatch({ kind: 'placeChoice', index }) }} />
     <SceneLabel text="TIMEFOLD / THE LAST OBSERVATORY" position={[0, 1.32, 0]} width={2.4} height={0.13} color="#eee9df" size={0.5} />
     <SceneLabel text={chapterContent[session.chapter].objective} position={[0, 1.16, 0]} width={2.4} height={0.17} color="#b6c1b8" size={0.3} />
     <ViroNode position={[0, -0.06, 0.15]} scale={[0.7, 0.7, 0.7]}>
+    <ViroBox position={[0, -1.47, 0.54]} width={2.55} height={2.14} length={0.012} materials="tfPanel" />
+    <ViroBox position={[0, -0.39, 0.54]} width={2.55} height={0.02} length={0.014} materials="tfBrass" />
     <PuzzleControls session={session} busy={busy} dispatch={dispatch} />
     <SceneLabel text={trace ? `PAST: ${trace.past}\nPRESENT: ${trace.present}\nFUTURE: ${trace.future}` : 'Past edits determine present mechanisms and future consequences. Select a past object to begin.'} position={[0, -1.43, 0.58]} width={2.4} height={0.3} color="#d7b47b" size={0.28} />
     <PuzzleButton label="Undo" position={[-0.87, -1.69, 0.58]} disabled={busy || !session.game.history.length || session.pendingReset !== null} onPress={() => dispatch({ kind: 'undo' })} />

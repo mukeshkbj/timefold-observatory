@@ -10,13 +10,10 @@ export default function SetupScreen() {
     <SafeAreaView style={styles.screen}>
       <ScrollView contentContainerStyle={styles.content}>
         <Pressable accessibilityRole="button" onPress={() => router.back()} style={styles.back}><Text style={styles.link}>Back</Text></Pressable>
-        <Text style={styles.title}>Setup requirements</Text>
-        <Text style={styles.body}>Quest App ID: {questConfigured ? 'configured' : 'missing'}</Text>
-        <Text style={styles.body}>Quest requires a real Meta App ID, Developer Mode and USB debugging authorization. Set META_APP_ID before regenerating and compiling the native project.</Text>
-        <Text style={styles.body}>Phone AR requires a physical ARKit iPhone or ARCore Android device. Select a horizontal surface in a well-lit room.</Text>
-        <Text style={styles.body}>The iPhone build must be compiled and signed on the arranged Mac. Expo Go, browser previews and compilation alone do not prove native AR.</Text>
-        <Text style={styles.body}>The Gemini keeper is not connected in this checkpoint. No live AI request or paid operation is made.</Text>
-        <Text style={styles.note}>Dependency advisories remain release blockers. This checkpoint is approved for controlled local development only.</Text>
+        <Text style={styles.title}>Setup</Text>
+        <Text style={styles.body}>Meta Quest: App ID {questConfigured ? 'configured' : 'not set'}. Quest installs also need Developer Mode and USB debugging enabled in the Meta Horizon app.</Text>
+        <Text style={styles.body}>Phones: an ARKit-capable iPhone or an ARCore-capable Android device, plus a clear horizontal surface in a well-lit room. Devices without AR support can play the full puzzle in the logic lab.</Text>
+        <Text style={styles.body}>The keeper answers from authored hints on-device — the puzzle is complete and playable offline.</Text>
       </ScrollView>
     </SafeAreaView>
   );

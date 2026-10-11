@@ -19,6 +19,12 @@ export default ({ config }: ConfigContext): ExpoConfig => {
         android: { xRMode: ['AR', 'QUEST'], ...(metaAppId ? { questAppId: metaAppId } : {}) },
         ios: { cameraUsagePermission: 'TimeFold uses the camera to place its observatory on a surface in your room.' },
       }],
+      ['expo-splash-screen', {
+        image: './assets/splash-icon.png',
+        imageWidth: 220,
+        resizeMode: 'contain',
+        backgroundColor: '#141817',
+      }],
     ],
     extra: { ...config.extra, metaAppId: metaAppId ?? null },
     experiments: { ...config.experiments, typedRoutes: true },
