@@ -2,13 +2,14 @@ import Constants from 'expo-constants';
 import { router, useLocalSearchParams } from 'expo-router';
 import { isQuest, ViroXRSceneNavigator } from '@reactvision/react-viro';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { Platform, Pressable, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import PhoneHud from './PhoneHud';
 import PhoneScene from './PhoneScene';
 import QuestScene from './QuestScene';
 import TimeFoldPhoneScene from './TimeFoldPhoneScene';
 import TimeFoldQuestScene from './TimeFoldQuestScene';
+import { useCinematic } from './sessionStore';
 
 export default function XRLauncher() {
   const insets = useSafeAreaInsets();
@@ -20,6 +21,7 @@ export default function XRLauncher() {
   const arScene = useMemo(() => ({
     scene: inspecting ? function ObservatoryAR() { return <TimeFoldPhoneScene onArAlive={onArAlive} />; } : PhoneScene,
   }), [inspecting, onArAlive]);
+  const cinematic = useCinematic() && inspecting && !isQuest;
   const vrScene = useMemo(() => ({ scene: inspecting ? TimeFoldQuestScene : QuestScene }), [inspecting]);
   useEffect(() => {
     if (isQuest) return;
@@ -40,7 +42,8 @@ export default function XRLauncher() {
   return (
     <View style={styles.navigator}>
       <ViroXRSceneNavigator arInitialScene={arScene} vrInitialScene={vrScene}
-        onExitViro={() => router.replace('/')} hdrEnabled={false} bloomEnabled={false} handTrackingEnabled={false} style={styles.navigator} />
+        onExitViro={() => router.replace('/')} hdrEnabled={cinematic} bloomEnabled={cinematic}
+        occlusionMode={cinematic && Platform.OS === 'ios' ? 'peopleOnly' : undefined} handTrackingEnabled={false} style={styles.navigator} />
       {inspecting && !isQuest && <PhoneHud />}
       {!inspecting && !isQuest && <Pressable accessibilityRole="button" onPress={() => router.replace('/')} style={[styles.exit, { top: insets.top + 8 }]}><Text style={styles.buttonText}>Return home</Text></Pressable>}
       {arStalled && <View style={[styles.stalled, { bottom: insets.bottom + 24 }]}>

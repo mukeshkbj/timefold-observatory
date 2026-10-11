@@ -249,6 +249,10 @@ export default function PhoneHud() {
             accessibilityLabel={`Keeper voice, currently ${snap.voice ? 'on' : 'off'}. Toggle`}
             tone="dark"
             onPress={snap.actions.toggleVoice} />
+          <HudButton label={`Cinematic effects: ${snap.cinematic ? 'on' : 'off'}`}
+            accessibilityLabel={`Glow and hand occlusion, currently ${snap.cinematic ? 'on' : 'off'}. Toggle`}
+            tone="dark"
+            onPress={snap.actions.toggleCinematic} />
           <HudButton label="Move observatory" accessibilityLabel="Pick a new surface for the observatory" tone="dark"
             disabled={snap.placement !== 'placed'}
             onPress={() => { setMenuOpen(false); snap.actions.requestReplace(); }} />

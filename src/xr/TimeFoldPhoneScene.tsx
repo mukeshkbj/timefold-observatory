@@ -23,6 +23,8 @@ export default function TimeFoldPhoneScene({ onArAlive }: { onArAlive?: () => vo
   const commit = (next: { scale: number; yaw: number }) => { live.current = next; setPose(next); };
   const markAlive = () => { if (!alive.current) { alive.current = true; onArAlive?.(); } };
 
+  useEffect(() => { actions.setPlacement('scanning'); actions.setTracking(null); }, []);
+
   useEffect(() => {
     if (replaceRequest === lastReplace.current) return;
     lastReplace.current = replaceRequest;

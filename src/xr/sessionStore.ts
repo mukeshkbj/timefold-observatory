@@ -2,6 +2,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { randomUUID } from 'expo-crypto';
 import * as Speech from 'expo-speech';
 import { useSyncExternalStore } from 'react';
+import { Platform } from 'react-native';
 import { getFact, primaryFact, type KeeperRequest } from '../../shared/keeper';
 import { caseLabel, chapterComplete, chapterContent, clueText, INTRO_CARDS, newPuzzleSession, recoveredMessage, reducePuzzle, type PuzzleAction, type PuzzleField, type PuzzleSession } from '../../shared/puzzle';
 import { caseCount, clueChapters, deriveWorld, newGame } from '../../shared/timefold';
@@ -10,6 +11,7 @@ import { AMBIENT_DEFAULT, type AmbientLight, type TrackingHint } from './arMath'
 
 const INTRO_KEY = 'timefold.intro.v1';
 const VOICE_KEY = 'timefold.voice.v1';
+const FX_KEY = 'timefold.fx.v1';
 
 export { INTRO_CARDS };
 
@@ -32,6 +34,7 @@ export type TimeFoldSnapshot = Readonly<{
   ambient: AmbientLight;
   replaceRequest: number;
   gestureHint: boolean;
+  cinematic: boolean;
 }>;
 export type TimeFoldActions = {
   init: () => void;
@@ -50,6 +53,7 @@ export type TimeFoldActions = {
   setAmbient: (ambient: AmbientLight) => void;
   requestReplace: () => void;
   dismissGestureHint: () => void;
+  toggleCinematic: () => void;
 };
 
 let snapshot: TimeFoldSnapshot = {
@@ -69,6 +73,7 @@ let snapshot: TimeFoldSnapshot = {
   ambient: AMBIENT_DEFAULT,
   replaceRequest: 0,
   gestureHint: false,
+  cinematic: Platform.OS === 'ios',
 };
 const listeners = new Set<() => void>();
 let rippleId = 0;
@@ -105,7 +110,8 @@ function init() {
     loadProgress(),
     AsyncStorage.getItem(INTRO_KEY).catch(() => '1'),
     AsyncStorage.getItem(VOICE_KEY).catch(() => null),
-  ]).then(([saved, intro, voice]) => {
+    AsyncStorage.getItem(FX_KEY).catch(() => null),
+  ]).then(([saved, intro, voice, fx]) => {
     emit({
       ...(saved
         ? { session: newPuzzleSession(saved), message: 'Checkpoint restored.' }
@@ -113,6 +119,7 @@ function init() {
       busy: false,
       introOpen: intro === null,
       voice: voice !== '0',
+      ...(fx === null ? {} : { cinematic: fx === '1' }),
     });
   }).catch(() => emit({ busy: false, introOpen: true, message: 'Storage unavailable. Play works in memory.' }));
 }
@@ -218,6 +225,11 @@ export const actions: TimeFoldActions = {
   setAmbient: ambient => emit({ ambient }),
   requestReplace: () => emit({ replaceRequest: snapshot.replaceRequest + 1, gestureHint: false }),
   dismissGestureHint: () => { if (snapshot.gestureHint) emit({ gestureHint: false }); },
+  toggleCinematic: () => {
+    const cinematic = !snapshot.cinematic;
+    emit({ cinematic });
+    void AsyncStorage.setItem(FX_KEY, cinematic ? '1' : '0').catch(() => undefined);
+  },
   closeDebrief: () => emit({ debriefOpen: false }),
   clearSfx: id => { if (snapshot.sfx?.id === id) emit({ sfx: null }); },
   openIntro: () => emit({ introOpen: true }),
@@ -232,6 +244,10 @@ export const actions: TimeFoldActions = {
     if (!voice) stopSpeech();
   },
 };
+
+export function useCinematic() {
+  return useSyncExternalStore(subscribe, () => snapshot.cinematic);
+}
 
 export function useReplaceRequest() {
   return useSyncExternalStore(subscribe, () => snapshot.replaceRequest);

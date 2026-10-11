@@ -51,7 +51,7 @@ export function DustMotes({ run }: { run: boolean }) {
   return (
     <ViroParticleEmitter
       position={[0, 0.25, 0.1]} run={run} duration={7000} loop={true} fixedToEmitter={true}
-      image={{ ...image, height: 0.015, width: 0.015 }}
+      image={{ ...image, height: 0.015, width: 0.015, bloomThreshold: 1 }}
       spawnBehavior={{
         particleLifetime: [3500, 6000],
         emissionRatePerSecond: [1, 2],
