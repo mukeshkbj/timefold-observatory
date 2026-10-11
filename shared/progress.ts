@@ -1,4 +1,4 @@
-import { clueChapters, deriveWorld, initialStateFor, isRecord, parseScenario, parseTimeFoldState, type Chapter, type ClueId, type Game, type Stats, type TimeFoldState } from './timefold.ts';
+import { caseCount, clueChapters, deriveWorld, initialStateFor, isRecord, parseScenario, parseTimeFoldState, type Chapter, type ClueId, type Game, type Stats, type TimeFoldState } from './timefold.ts';
 
 export const progressKey = 'timefold.progress.v2';
 const clueIds: readonly ClueId[] = ['wiring', 'sky', 'plaque'];
@@ -31,7 +31,7 @@ export function decodeProgress(raw: string | null): Game | null {
   if (!isRecord(value) || value.schemaVersion !== 2 || (value.unlocked !== 1 && value.unlocked !== 2 && value.unlocked !== 3)
     || typeof value.revision !== 'number' || !Number.isSafeInteger(value.revision) || value.revision < 0
     || !Array.isArray(value.history) || value.history.length > 64 || value.history.length > value.revision
-    || typeof value.seed !== 'number' || !Number.isInteger(value.seed) || value.seed < 0 || value.seed > 17) return null;
+    || typeof value.seed !== 'number' || !Number.isInteger(value.seed) || value.seed < 0 || value.seed > caseCount - 1) return null;
   const unlocked = value.unlocked as Chapter;
   const scenario = parseScenario(value);
   if (!scenario) return null;

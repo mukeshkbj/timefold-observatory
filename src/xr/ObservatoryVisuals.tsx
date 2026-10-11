@@ -31,7 +31,7 @@ export default function ObservatoryVisuals({ state, scenario, interaction = null
     buildEraVisuals(futureState, scenario)[2],
   ];
   return (
-    <ViroNode>
+    <ViroNode lightReceivingBitMask={3} shadowCastingBitMask={2}>
       <ViroBox position={[0, -0.24, 0.45]} width={2.4} height={0.045} length={0.08} materials="tfBrass" />
       {layers.map(layer => (
         <ViroNode key={layer.era}>

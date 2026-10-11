@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
-import { initialStateFor, scenarioFromSeed, type TimeFoldState } from '../shared/timefold.ts';
+import { caseCount, initialStateFor, scenarioFromSeed, type TimeFoldState } from '../shared/timefold.ts';
 import { authoredReply, getFact, isFactId, parseKeeperReply, parseKeeperRequest, primaryFact, type KeeperRequest } from '../shared/keeper.ts';
 
 const scenario = scenarioFromSeed(0);
@@ -25,7 +25,7 @@ test('keeper requests accept only the declared structured questions, seed and st
   assert.equal(parseKeeperRequest({ ...request, revision: -1 }), null);
   assert.equal(parseKeeperRequest({ ...request, schemaVersion: 1 }), null);
   assert.equal(parseKeeperRequest({ ...request, seed: -1 }), null);
-  assert.equal(parseKeeperRequest({ ...request, seed: 18 }), null);
+  assert.equal(parseKeeperRequest({ ...request, seed: 72 }), null);
   assert.equal(parseKeeperRequest({ ...request, seed: 2.5 }), null);
   assert.equal(parseKeeperRequest({ ...request, seed: undefined }), null);
 });
@@ -41,7 +41,7 @@ test('every state, seed and question maps to a valid fact', () => {
     { question: 'lore', hintLevel: 3, era: 'future' },
   ];
   let checked = 0;
-  for (let seed = 0; seed < 18; seed++) {
+  for (let seed = 0; seed < caseCount; seed++) {
     for (const cell of choices.cell) for (const fuse of choices.fuse)
     for (const gear of choices.gear) for (const lens of choices.lens)
     for (const alignment of choices.alignment) for (const crystal of choices.crystal)
@@ -54,7 +54,7 @@ test('every state, seed and question maps to a valid fact', () => {
       }
     }
   }
-  assert.equal(checked, 18 * 648 * questions.length);
+  assert.equal(checked, caseCount * 648 * questions.length);
 });
 
 test('progressive hints point at evidence before naming destinations', () => {
@@ -67,7 +67,7 @@ test('progressive hints point at evidence before naming destinations', () => {
 });
 
 test('tier-three facts follow the scenario, not a fixed answer', () => {
-  for (let seed = 0; seed < 18; seed++) {
+  for (let seed = 0; seed < caseCount; seed++) {
     const current = scenarioFromSeed(seed);
     const base = initialStateFor(current);
     const powered = { ...base, cell: current.socket, fuse: 'protected', gear: 'drive', lens: 'optic' } as const;

@@ -2,7 +2,7 @@ import { randomUUID } from 'expo-crypto';
 import { useSyncExternalStore } from 'react';
 import { getFact, primaryFact, type KeeperRequest } from '../../shared/keeper';
 import { caseLabel, chapterComplete, chapterContent, clueText, newPuzzleSession, reducePuzzle, type PuzzleAction, type PuzzleField, type PuzzleSession } from '../../shared/puzzle';
-import { clueChapters, deriveWorld, newGame } from '../../shared/timefold';
+import { caseCount, clueChapters, deriveWorld, newGame } from '../../shared/timefold';
 import { loadProgress, saveProgress } from '../timefold/progress';
 
 export type SfxKind = 'place' | 'hazard' | 'inspect' | 'signal' | 'ripple';
@@ -80,7 +80,7 @@ function dispatch(action: PuzzleAction) {
     return;
   }
   if (next.game === before.game) {
-    emit(action.kind === 'chapter'
+    emit(next.chapter !== before.chapter
       ? { session: next, highlights: [], keeper: chapterContent[next.chapter].story }
       : { session: next });
     return;
@@ -99,15 +99,16 @@ function dispatch(action: PuzzleAction) {
   const world = deriveWorld(next.game.state, next.game.scenario);
   const kind: SfxKind = world.hazard && !beforeWorld.hazard ? 'hazard'
     : world.signalRecovered && !beforeWorld.signalRecovered ? 'signal' : 'place';
-  const completed = chapterComplete(next.game, next.chapter) && !chapterComplete(before.game, next.chapter);
+  const completed = chapterComplete(next.game, before.chapter) && !chapterComplete(before.game, before.chapter);
   emit({
     session: next,
     sfx: { id: ++sfxId, kind },
     ripple: { id: ++rippleId, hazard: world.hazard },
     highlights: next.trace?.highlights ?? [],
-    keeper: 'The timeline shifted. Ask the keeper for a hint or an explanation.',
+    keeper: next.chapter !== before.chapter ? chapterContent[next.chapter].story
+      : 'The timeline shifted. Ask the keeper for a hint or an explanation.',
     message: completed
-      ? `Chapter ${next.chapter} complete. Chapters learned: ${next.game.unlocked}.`
+      ? `Chapter ${before.chapter} complete. Chapters learned: ${next.game.unlocked}.`
       : `Revision ${next.game.revision}. Chapters learned: ${next.game.unlocked}.`,
     debriefOpen: kind === 'signal' ? true : snapshot.debriefOpen,
   });
@@ -135,7 +136,7 @@ function ask(question: 'hint' | 'explain') {
 
 function newCase() {
   const seed = snapshot.session.game.scenario.seed;
-  const next = newGame((seed + 1 + Math.floor(Math.random() * 17)) % 18);
+  const next = newGame((seed + 1 + Math.floor(Math.random() * (caseCount - 1))) % caseCount);
   emit({
     session: newPuzzleSession(next),
     highlights: [],

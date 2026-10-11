@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
 import { caseLabel, chapterComplete, clueText, newPuzzleSession, placementChoices, reducePuzzle, type PuzzleField, type PuzzleSession } from '../shared/puzzle.ts';
-import { newGame, scenarioFromSeed } from '../shared/timefold.ts';
+import { caseCount, newGame, scenarioFromSeed } from '../shared/timefold.ts';
 
 // Seed 0 → socket 'a', bearing 'left', band 'low'.
 function session(seed = 0) { return newPuzzleSession(newGame(seed)); }
@@ -27,13 +27,14 @@ test('destination labels are neutral and never mark the answer', () => {
 });
 
 test('case labels present the seeded case number', () => {
-  assert.equal(caseLabel(scenarioFromSeed(0)), 'CASE 01 / 18');
-  assert.equal(caseLabel(scenarioFromSeed(6)), 'CASE 07 / 18');
-  assert.equal(caseLabel(scenarioFromSeed(17)), 'CASE 18 / 18');
+  assert.equal(caseLabel(scenarioFromSeed(0)), 'CASE 01 / 72');
+  assert.equal(caseLabel(scenarioFromSeed(6)), 'CASE 07 / 72');
+  assert.equal(caseLabel(scenarioFromSeed(17)), 'CASE 18 / 72');
+  assert.equal(caseLabel(scenarioFromSeed(71)), 'CASE 72 / 72');
 });
 
 test('clue text names the scenario evidence without ambiguity', () => {
-  for (let seed = 0; seed < 18; seed++) {
+  for (let seed = 0; seed < caseCount; seed++) {
     const scenario = scenarioFromSeed(seed);
     const wiring = clueText(scenario, 'wiring');
     assert.equal(wiring.era, 'present');
@@ -108,19 +109,47 @@ test('chapter navigation never bypasses locks or mutates game history', () => {
   assert.equal(chapterTwo.selected, null);
 });
 
+test('completing a chapter advances the session to the next chapter', () => {
+  const current = powered();
+  assert.equal(current.chapter, 2);
+  let aimed = place(place(current, 'gear', 'Drive socket'), 'lens', 'Optical mount');
+  aimed = place(aimed, 'alignment', 'Left');
+  assert.equal(chapterComplete(aimed.game, 2), true);
+  assert.equal(aimed.chapter, 3);
+  const solved = place(place(aimed, 'crystal', 'Receiver mount'), 'frequency', 'Low band');
+  assert.equal(chapterComplete(solved.game, 3), true);
+  assert.equal(solved.chapter, 3);
+});
+
+test('selecting an unlocked chapter object jumps to its chapter', () => {
+  const current = powered();
+  assert.equal(current.chapter, 2);
+  const back = reducePuzzle(current, { kind: 'select', field: 'cell' });
+  assert.equal(back.chapter, 1);
+  assert.equal(back.selected, 'cell');
+  const forward = reducePuzzle(back, { kind: 'select', field: 'gear' });
+  assert.equal(forward.chapter, 2);
+  assert.equal(forward.selected, 'gear');
+  const initial = session();
+  assert.equal(reducePuzzle(initial, { kind: 'select', field: 'gear' }), initial);
+});
+
 test('reset requires matching named confirmation, cancellation commits nothing, and reset is undoable', () => {
   const current = powered();
   assert.equal(reducePuzzle(current, { kind: 'confirmReset', chapter: 1 }), current);
   const pending = reducePuzzle(current, { kind: 'requestReset' });
-  assert.equal(pending.pendingReset, 1);
+  assert.equal(pending.pendingReset, 2);
   assert.equal(pending.game, current.game);
-  assert.equal(reducePuzzle(pending, { kind: 'confirmReset', chapter: 2 }), pending);
+  assert.equal(reducePuzzle(pending, { kind: 'confirmReset', chapter: 1 }), pending);
   const cancelled = reducePuzzle(pending, { kind: 'cancelReset' });
   assert.equal(cancelled.game, current.game);
-  const reset = reducePuzzle(pending, { kind: 'confirmReset', chapter: 1 });
-  assert.equal(reset.game.state.cell, 'home');
+  const withLens = place(cancelled, 'lens', 'Optical mount');
+  const resetPending = reducePuzzle(withLens, { kind: 'requestReset' });
+  const reset = reducePuzzle(resetPending, { kind: 'confirmReset', chapter: 2 });
+  assert.equal(reset.game.state.lens, 'home');
+  assert.equal(reset.game.state.cell, 'a');
   assert.equal(reset.game.unlocked, 2);
-  assert.equal(reducePuzzle(reset, { kind: 'undo' }).game.state.cell, 'a');
+  assert.equal(reducePuzzle(reset, { kind: 'undo' }).game.state.lens, 'optic');
 });
 
 test('all chapters complete through explicit named choices, and removing a prerequisite changes the world without relocking chapters', () => {

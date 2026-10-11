@@ -8,8 +8,8 @@ import { buildDebrief } from '../../shared/debrief';
 import { getFact, type KeeperReply, type KeeperRequest } from '../../shared/keeper';
 import { createKeeperClient } from '../../shared/keeperClient';
 import { createSaveQueue, decodeProgress } from '../../shared/progress';
-import { caseLabel, chapterContent, chapterFields, clueText, objectNames, placementChoices } from '../../shared/puzzle';
-import { clueChapters, deriveWorld, newGame, reduceGame, type Chapter, type ClueId, type Game, type GameAction } from '../../shared/timefold';
+import { caseLabel, chapterContent, chapterFields, clueText, objectNames, placementChoices, type PuzzleField } from '../../shared/puzzle';
+import { caseCount, clueChapters, deriveWorld, newGame, reduceGame, type Chapter, type ClueId, type Game, type GameAction } from '../../shared/timefold';
 import LabButton from './LabButton';
 
 const labKey = 'timefold.lab.progress.v2';
@@ -17,7 +17,9 @@ const checkpointQueue = createSaveQueue(value => AsyncStorage.setItem(labKey, va
 const chapters: { id: Chapter; title: string }[] = [{ id: 1, title: 'Restore power' }, { id: 2, title: 'Restore the sky' }, { id: 3, title: 'Recover the signal' }];
 const clues: readonly ClueId[] = ['wiring', 'sky', 'plaque'];
 const clueButtons: Readonly<Record<ClueId, string>> = { wiring: 'Inspect the 2026 room', sky: 'Inspect the open 2086 sky', plaque: 'Inspect the 2086 ruin' };
-function nextCaseSeed(seed: number) { return (seed + 1 + Math.floor(Math.random() * 17)) % 18; }
+function nextCaseSeed(seed: number) { return (seed + 1 + Math.floor(Math.random() * (caseCount - 1))) % caseCount; }
+const fieldLabel = (field: PuzzleField, value: string) =>
+  placementChoices(field).find(choice => choice.action.value === value)?.label ?? value;
 type StorageStatus = { kind: 'loading' } | { kind: 'saving' } | { kind: 'ready'; message: string } | { kind: 'error'; message: string };
 type KeeperStatus = { kind: 'idle' | 'loading' } | { kind: 'shown'; reply: KeeperReply } | { kind: 'error'; message: string };
 
@@ -100,10 +102,10 @@ export default function LogicLab() {
       <ScrollView contentContainerStyle={styles.content}>
         <View style={styles.header}><Text style={styles.brand}>TIMEFOLD / LOCAL LAB / {caseLabel(game.scenario)}</Text><View style={styles.row}><LabButton label="New case" disabled={busy} onPress={() => setReset('case')} /><LabButton label="Return home" onPress={() => router.replace('/')} /></View></View>
         <Text accessibilityRole="header" style={styles.title}>Evidence from the future.{ '\n' }Repairs in the past.</Text>
-        <Text style={styles.description}>{chapterContent[chapter].objective} This is a 2D logic lab, not AR/VR rendering or live Gemini.</Text>
+        <Text style={styles.description}>{chapterContent[chapter].objective} The 2D lab runs the same rules engine as the AR observatory.</Text>
         {storage.kind === 'loading' && <Text accessibilityLiveRegion="polite" style={styles.notice}>Checking the isolated lab checkpoint…</Text>}
         <View style={[styles.timeline, width < 760 && styles.stack]}>
-          <View style={styles.era}><Text style={styles.eraTitle}>Past / editable</Text><Text style={styles.eraValue}>1986</Text><Text style={styles.body}>Cell: {game.state.cell === 'home' ? 'bench' : `socket ${game.state.cell.toUpperCase()}`}{ '\n' }Fuse: {game.state.fuse}{ '\n' }Gear: {game.state.gear}{ '\n' }Lens: {game.state.lens}{ '\n' }Alignment: {game.state.alignment}{ '\n' }Crystal: {game.state.crystal}{ '\n' }Frequency: {game.state.frequency}</Text></View>
+          <View style={styles.era}><Text style={styles.eraTitle}>Past / editable</Text><Text style={styles.eraValue}>1986</Text><Text style={styles.body}>Cell: {fieldLabel('cell', game.state.cell)}{ '\n' }Fuse: {fieldLabel('fuse', game.state.fuse)}{ '\n' }Gear: {fieldLabel('gear', game.state.gear)}{ '\n' }Lens: {fieldLabel('lens', game.state.lens)}{ '\n' }Alignment: {fieldLabel('alignment', game.state.alignment)}{ '\n' }Crystal: {fieldLabel('crystal', game.state.crystal)}{ '\n' }Frequency: {fieldLabel('frequency', game.state.frequency)}</Text></View>
           <View style={styles.era}><Text style={styles.eraTitle}>Present / derived</Text><Text style={styles.eraValue}>2026</Text><Text style={styles.body}>Motor: {world.hazard ? 'burnt' : world.powered ? 'energized' : 'silent'}{ '\n' }Circuit: {world.hazard ? 'bypass arced' : game.state.fuse === 'protected' ? 'protected' : 'open'}{ '\n' }Instrument: {world.aimed ? 'aligned' : 'incomplete'}</Text></View>
           <View style={styles.era}><Text style={styles.eraTitle}>Future / derived</Text><Text style={styles.eraValue}>2086</Text><Text style={styles.body}>Beacon: {world.powered ? 'illuminated' : world.hazard ? 'lost to the burn' : 'dark'}{ '\n' }Signal: {world.signalRecovered ? 'recovered' : 'waiting'}</Text></View>
         </View>
@@ -120,7 +122,7 @@ export default function LogicLab() {
         </View>
         <View style={styles.section}>
           <Text accessibilityRole="header" style={styles.heading}>Past workbench</Text>
-          <Text style={styles.description}>These controls commit logical placements. They do not test touch dragging, controller input or physical anchoring.</Text>
+          <Text style={styles.description}>Commit a repair, then watch the derived eras answer.</Text>
           {chapterFields[chapter].map(field => <View key={field} style={styles.control}><Text style={styles.controlLabel}>{objectNames[field]}</Text><View style={styles.row}>{placementChoices(field).map(option => <LabButton key={option.label} label={option.label} selected={game.state[field] === option.action.value} disabled={busy} onPress={() => change(option.action)} />)}</View></View>)}
           <View style={styles.row}><LabButton label="Undo last repair" disabled={busy || !game.history.length} onPress={() => change({ kind: 'undo' })} /><LabButton label="Reset selected chapter" disabled={busy} onPress={() => setReset('chapter')} /><LabButton label="Reset lab session" disabled={busy} onPress={() => setReset('session')} /></View>
           {reset && <View style={styles.confirm}><Text style={styles.body}>{reset === 'session' ? 'Reset this memory session to the start of this case? The saved lab checkpoint will remain unchanged.' : reset === 'case' ? 'Abandon this case and open a new one? The answers will differ; the saved lab checkpoint will remain unchanged.' : 'Reset only the selected chapter? Earlier chapter arrangements and learned unlocks remain; this reset can be undone.'}</Text><View style={styles.row}><LabButton label="Cancel" onPress={() => setReset(null)} /><LabButton label={reset === 'session' ? 'Confirm session reset' : reset === 'case' ? 'Confirm new case' : 'Confirm chapter reset'} primary disabled={busy} onPress={confirmReset} /></View></View>}
@@ -136,7 +138,7 @@ export default function LogicLab() {
         ); })()}
         <View style={styles.section}>
           <Text accessibilityRole="header" style={styles.heading}>The keeper</Text>
-          <Text style={styles.description}>Authored mode only. No authentication, backend or model request is made by this lab.</Text>
+          <Text style={styles.description}>Authored hints, computed from your current arrangement.</Text>
           <View style={styles.row}>{([{ value: 1, label: 'Hint: observe' }, { value: 2, label: 'Hint: direction' }, { value: 3, label: 'Hint: exact step' }] satisfies { value: KeeperRequest['hintLevel']; label: string }[]).map(item => <LabButton key={item.value} label={item.label} selected={level === item.value} disabled={busy} onPress={() => { clearKeeper(); setLevel(item.value); }} />)}</View>
           <View style={styles.row}>{(['past', 'present', 'future'] satisfies KeeperRequest['era'][]).map(item => <LabButton key={item} label={`Lore era: ${item}`} selected={era === item} disabled={busy} onPress={() => { clearKeeper(); setEra(item); }} />)}</View>
           <View style={styles.row}><LabButton label="Ask for a hint" disabled={busy || keeper.kind === 'loading'} primary onPress={() => void askKeeper('hint')} /><LabButton label="Explain the chain" disabled={busy || keeper.kind === 'loading'} onPress={() => void askKeeper('explain')} /><LabButton label="Tell this era's story" disabled={busy || keeper.kind === 'loading'} onPress={() => void askKeeper('lore')} /></View>

@@ -2,7 +2,7 @@ export type Socket = 'a' | 'b';
 export type Bearing = 'left' | 'centre' | 'right';
 export type Band = 'low' | 'mid' | 'high';
 export type Scenario = Readonly<{ seed: number; socket: Socket; bearing: Bearing; band: Band }>;
-export const caseCount = 18;
+export const caseCount = 72;
 
 const sockets: readonly Socket[] = ['a', 'b'];
 const bearings: readonly Bearing[] = ['left', 'centre', 'right'];
@@ -10,11 +10,12 @@ const bands: readonly Band[] = ['low', 'mid', 'high'];
 
 export function scenarioFromSeed(seed: number): Scenario {
   const s = ((Math.trunc(seed) % caseCount) + caseCount) % caseCount;
+  const base = s % 18;
   return {
     seed: s,
-    socket: sockets[s % 2],
-    bearing: bearings[Math.floor(s / 2) % 3],
-    band: bands[Math.floor(s / 6) % 3],
+    socket: sockets[base % 2],
+    bearing: bearings[Math.floor(base / 2) % 3],
+    band: bands[Math.floor(base / 6) % 3],
   };
 }
 
@@ -29,11 +30,13 @@ export type TimeFoldState = Readonly<{
 }>;
 
 export function initialStateFor(scenario: Scenario): TimeFoldState {
+  const startBearingPick = Math.floor(scenario.seed / 18) % 2;
+  const startBandPick = Math.floor(scenario.seed / 36) % 2;
   return {
     cell: 'home', fuse: 'home', gear: 'home', lens: 'home',
-    alignment: bearings.find(bearing => bearing !== scenario.bearing) ?? 'left',
+    alignment: bearings.filter(bearing => bearing !== scenario.bearing)[startBearingPick] ?? 'left',
     crystal: 'home',
-    frequency: bands.find(band => band !== scenario.band) ?? 'low',
+    frequency: bands.filter(band => band !== scenario.band)[startBandPick] ?? 'low',
   };
 }
 

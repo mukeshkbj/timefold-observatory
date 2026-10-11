@@ -21,16 +21,37 @@ test('every seed selects a distinct socket, bearing and band combination', () =>
     assert.equal(scenario.seed, seed);
     combos.add(`${scenario.socket}/${scenario.bearing}/${scenario.band}`);
   }
-  assert.equal(combos.size, caseCount);
+  assert.equal(combos.size, 18);
 });
 
 test('out-of-range and fractional seeds normalise into the case range', () => {
   assert.equal(scenarioFromSeed(-1).seed, caseCount - 1);
-  assert.equal(scenarioFromSeed(-19).seed, caseCount - 1);
-  assert.equal(scenarioFromSeed(18).seed, 0);
+  assert.equal(scenarioFromSeed(-73).seed, caseCount - 1);
+  assert.equal(scenarioFromSeed(72).seed, 0);
   assert.equal(scenarioFromSeed(100).seed, 100 % caseCount);
   assert.equal(scenarioFromSeed(5.9).seed, 5);
   assert.equal(scenarioFromSeed(-5.9).seed, caseCount - 5);
+});
+
+test('the starting dial positions never leak the answer', () => {
+  const bearingStarts = new Map<string, Set<string>>();
+  const bandStarts = new Map<string, Set<string>>();
+  for (let seed = 0; seed < caseCount; seed++) {
+    const scenario = scenarioFromSeed(seed);
+    const initial = initialStateFor(scenario);
+    bearingStarts.set(initial.alignment, (bearingStarts.get(initial.alignment) ?? new Set()).add(scenario.bearing));
+    bandStarts.set(initial.frequency, (bandStarts.get(initial.frequency) ?? new Set()).add(scenario.band));
+  }
+  for (const [start, answers] of bearingStarts) {
+    assert.deepEqual([...answers].sort(), ['left', 'centre', 'right'].filter(b => b !== start).sort(),
+      `initial alignment ${start} leaks the answer`);
+  }
+  for (const [start, answers] of bandStarts) {
+    assert.deepEqual([...answers].sort(), ['low', 'mid', 'high'].filter(b => b !== start).sort(),
+      `initial frequency ${start} leaks the answer`);
+  }
+  for (const bearing of ['left', 'centre', 'right']) assert.ok(bearingStarts.has(bearing));
+  for (const band of ['low', 'mid', 'high']) assert.ok(bandStarts.has(band));
 });
 
 test('the initial arrangement never starts aimed or recovered and always differs from the answer', () => {

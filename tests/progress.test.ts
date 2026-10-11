@@ -29,7 +29,7 @@ test('tampered seeds, states, revisions and histories are rejected', () => {
   const game = play([{ kind: 'change', field: 'cell', value: 'a' }]);
   const payload = JSON.parse(encodeProgress(game));
   const encode = (value: unknown) => JSON.stringify(value);
-  assert.equal(decodeProgress(encode({ ...payload, seed: 18 })), null);
+  assert.equal(decodeProgress(encode({ ...payload, seed: 72 })), null);
   assert.equal(decodeProgress(encode({ ...payload, seed: -1 })), null);
   assert.equal(decodeProgress(encode({ ...payload, seed: 2.5 })), null);
   assert.equal(decodeProgress(encode({ ...payload, seed: '4' })), null);

@@ -1,5 +1,5 @@
 import { useEffect } from 'react';
-import { ViroNode, ViroOmniLight, ViroSound } from '@reactvision/react-viro';
+import { ViroAmbientLight, ViroDirectionalLight, ViroNode, ViroOmniLight, ViroQuad, ViroSound } from '@reactvision/react-viro';
 import ObservatoryVisuals from './ObservatoryVisuals';
 import { actions, useTimeFold } from './sessionStore';
 
@@ -17,10 +17,16 @@ export default function TimeFoldContent() {
   const game = snap.session.game;
   return (
     <ViroNode>
+      <ViroAmbientLight color="#ffffff" intensity={300} />
+      <ViroDirectionalLight color="#fff1d6" direction={[-0.35, -1, -0.45]} intensity={600}
+        castsShadow shadowOpacity={0.5} shadowMapSize={2048}
+        shadowOrthographicSize={3} shadowOrthographicPosition={[0, 0.4, 0]} influenceBitMask={2} />
       <ViroOmniLight color="#f1e0b4" intensity={130}
         attenuationStartDistance={0.8} attenuationEndDistance={6} position={[0, 2.2, 0.9]} />
       <ViroOmniLight color="#9fd8c4" intensity={70}
         attenuationStartDistance={1} attenuationEndDistance={7} position={[0, 2, -1.6]} />
+      <ViroQuad position={[0, -0.075, 0]} rotation={[-90, 0, 0]} width={3.2} height={1.2}
+        arShadowReceiver lightReceivingBitMask={2} />
       <ObservatoryVisuals
         state={game.state}
         scenario={game.scenario}

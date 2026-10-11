@@ -58,7 +58,7 @@ test('a few wrong guesses read as methodical, many read as trial and error', () 
 
 test('the debrief reports the case label and the honest investigation record', () => {
   const debrief = buildDebrief(solved());
-  assert.equal(debrief.caseLabel, 'CASE 02 / 18');
+  assert.equal(debrief.caseLabel, 'CASE 02 / 72');
   assert.equal(debrief.evidenceTotal, 3);
   assert.equal(typeof debrief.moves, 'number');
   assert.equal(debrief.hazards, 0);

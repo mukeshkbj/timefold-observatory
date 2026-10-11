@@ -25,13 +25,15 @@ const CLUE_ERA: Readonly<Record<ClueId, string>> = { wiring: 'Find it in 2026', 
 
 const haptic = (promise: Promise<unknown>) => { promise.catch(() => undefined); };
 
-function Chip({ label, onPress, disabled, tone = 'dark', accessibilityLabel }: {
-  label: string; onPress?: () => void; disabled?: boolean; tone?: 'dark' | 'brass' | 'signal' | 'hazard' | 'dim'; accessibilityLabel: string;
+function Chip({ label, onPress, disabled, tone = 'dark', accessibilityLabel, accessibilityState }: {
+  label: string; onPress?: () => void; disabled?: boolean; tone?: 'dark' | 'brass' | 'signal' | 'hazard' | 'dim';
+  accessibilityLabel: string; accessibilityState?: { selected?: boolean };
 }) {
   const bg = tone === 'brass' ? C.brass : tone === 'signal' ? C.signal : tone === 'hazard' ? C.hazard : tone === 'dim' ? '#1d2523' : '#22302c';
   const fg = tone === 'brass' || tone === 'signal' || tone === 'hazard' ? C.bg : tone === 'dim' ? C.muted : C.ink;
   return (
     <Pressable onPress={onPress} disabled={disabled} accessibilityRole="button" accessibilityLabel={accessibilityLabel}
+      accessibilityState={accessibilityState}
       style={[styles.chip, { backgroundColor: bg, opacity: disabled ? 0.45 : 1 }]}>
       <Text style={[styles.chipText, { color: fg }]} numberOfLines={1}>{label}</Text>
     </Pressable>
@@ -182,14 +184,17 @@ export default function PhoneHud() {
               </Pressable>
             </View>
             <View style={styles.row}>
-              {placementChoices(session.selected).map((choice, i) => (
-                <Chip key={choice.label}
-                  label={game.state[session.selected!] === choice.action.value ? `· ${choice.label}` : choice.label}
-                  tone={game.state[session.selected!] === choice.action.value ? 'brass' : 'dark'}
-                  disabled={snap.busy}
-                  accessibilityLabel={`Move ${objectNames[session.selected!]} to ${choice.label}`}
-                  onPress={() => snap.actions.dispatch({ kind: 'placeChoice', index: i })} />
-              ))}
+              {placementChoices(session.selected).map((choice, i) => {
+                const current = game.state[session.selected!] === choice.action.value;
+                return (
+                  <Chip key={choice.label} label={choice.label}
+                    tone={current ? 'brass' : 'dark'}
+                    disabled={snap.busy}
+                    accessibilityLabel={`Move ${objectNames[session.selected!]} to ${choice.label}`}
+                    accessibilityState={{ selected: current }}
+                    onPress={() => snap.actions.dispatch({ kind: 'placeChoice', index: i })} />
+                );
+              })}
             </View>
           </View>
         ) : (

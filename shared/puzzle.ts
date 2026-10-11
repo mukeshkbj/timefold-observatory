@@ -76,8 +76,8 @@ export function reducePuzzle(session: PuzzleSession, action: PuzzleAction): Puzz
   }
   if (session.pendingReset && action.kind !== 'confirmReset') return session;
   if (action.kind === 'select') {
-    return fieldChapters[action.field] === session.chapter && fieldChapters[action.field] <= session.game.unlocked
-      ? { ...session, selected: action.field } : session;
+    return fieldChapters[action.field] <= session.game.unlocked
+      ? { ...session, chapter: fieldChapters[action.field], selected: action.field } : session;
   }
   const choice = action.kind === 'placeChoice' && session.selected ? placementChoices(session.selected)[action.index] : null;
   if (action.kind === 'placeChoice' && !choice) return session;
@@ -90,5 +90,7 @@ export function reducePuzzle(session: PuzzleSession, action: PuzzleAction): Puzz
   const game = reduceGame(session.game, gameAction);
   if (game === session.game) return action.kind === 'confirmReset' ? { ...session, pendingReset: null } : session;
   if (action.kind === 'inspect') return { ...session, game, lastClue: action.clue };
-  return { ...session, game, pendingReset: null, lastClue: null, trace: traceChange(session.game, game) };
+  const nextChapter: Chapter = session.chapter < 3 && chapterComplete(game, session.chapter)
+    && session.chapter + 1 <= game.unlocked ? session.chapter + 1 as Chapter : session.chapter;
+  return { ...session, chapter: nextChapter, game, pendingReset: null, lastClue: null, trace: traceChange(session.game, game) };
 }

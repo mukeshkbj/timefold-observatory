@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { deriveWorld, parseTimeFoldState, scenarioFromSeed, type Scenario, type TimeFoldState } from './timefold.ts';
+import { caseCount, deriveWorld, parseTimeFoldState, scenarioFromSeed, type Scenario, type TimeFoldState } from './timefold.ts';
 
 type Fact = Readonly<{ text: string; highlights: readonly (keyof TimeFoldState)[] }>;
 const facts = {
@@ -55,7 +55,7 @@ const stateSchema = z.unknown().transform((value, context) => {
 export const keeperRequestSchema = z.object({
   schemaVersion: z.literal(2),
   requestId: z.uuid(),
-  seed: z.number().int().min(0).max(17),
+  seed: z.number().int().min(0).max(caseCount - 1),
   state: stateSchema,
   revision: revisionSchema,
   question: z.enum(['hint', 'explain', 'lore']),

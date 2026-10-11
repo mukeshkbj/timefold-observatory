@@ -1,5 +1,5 @@
 import { useRef } from 'react';
-import { ViroAmbientLight, ViroARPlaneSelector, ViroARScene, ViroNode } from '@reactvision/react-viro';
+import { ViroARPlaneSelector, ViroARScene, ViroNode } from '@reactvision/react-viro';
 import TimeFoldContent from './TimeFoldContent';
 import { actions } from './sessionStore';
 
@@ -12,8 +12,6 @@ export default function TimeFoldPhoneScene({ onArAlive }: { onArAlive?: () => vo
     onAnchorUpdated={anchor => { markAlive(); selector.current?.handleAnchorUpdated(anchor); }}
     onAnchorRemoved={anchor => { if (anchor) selector.current?.handleAnchorRemoved(anchor); }}
     onTrackingUpdated={state => { if (state === 3) markAlive(); }}>
-    <ViroAmbientLight color="#ffffff" intensity={650} />
-    <ViroAmbientLight color="#8be0c4" intensity={180} />
     <ViroARPlaneSelector ref={selector} minWidth={0.7} minHeight={0.5}
       alignment="Horizontal"
       onPlaneSelected={() => { placed.current = true; actions.setPlacement('placed'); }}>

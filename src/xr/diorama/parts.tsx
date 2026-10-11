@@ -52,11 +52,10 @@ export function Telescope({ state, powered, interaction, intact }: {
   const yaw = MARKER_YAW[state.alignment];
   return (
     <ViroNode position={[0.025, 0.49, 0.04]} rotation={[-22, yaw, 0]}>
-      <ViroBox position={[0, 0, 0]} width={0.062} height={0.062} length={0.33} materials={intact ? 'tfBrass' : 'tfDusty'} opacity={intact ? 1 : 0.9} />
+      <ViroBox position={[0, 0, 0]} width={0.062} height={0.062} length={0.33} materials={intact ? 'tfBrass' : 'tfDusty'} />
       <ViroBox position={[0, -0.026, 0.08]} width={0.1} height={0.04} length={0.12} materials="tfDark" />
       <ViroSphere position={[0, 0, -0.25]} radius={0.04}
         materials={state.lens === 'optic' ? (powered ? 'tfSignal' : 'tfGlass') : 'tfDark'}
-        opacity={state.lens === 'optic' ? 0.95 : 0.55}
         scale={[1, 1, 0.35]} />
       {powered && state.lens === 'optic' && (
         <ViroBox position={[0, 0, -0.3]} width={0.05} height={0.05} length={0.1} materials="tfSignal" opacity={0.3} />
@@ -153,7 +152,7 @@ export function BenchObjects({ layer, interaction, editable }: {
           ))}
         </ViroNode>
       </Selectable>
-      {state.gear === 'drive' && <ViroBox position={[0.22, 0.17, 0.07]} width={0.1} height={0.12} length={0.06} materials="tfDark" opacity={0.9} />}
+      {state.gear === 'drive' && <ViroBox position={[0.22, 0.17, 0.07]} width={0.1} height={0.12} length={0.06} materials="tfDark" />}
       {state.lens !== 'optic' && (
         <Selectable field="lens" interaction={inter} position={[0.13, 0.04, 0.39]} size={0.12}>
           <ViroSphere radius={0.05} scale={[1, 1, 0.35]} materials="tfGlass" />
@@ -170,7 +169,7 @@ export function BenchObjects({ layer, interaction, editable }: {
         <ViroSphere radius={0.045} scale={[0.8, 1.4, 0.8]} materials="tfGlass" />
       </Selectable>
       {state.crystal === 'receiver' && (
-        <ViroBox position={[0.22, 0.055, 0.28]} width={0.13} height={0.1} length={0.12} materials={editable ? 'tfPast' : 'tfDusty'} opacity={0.9} />
+        <ViroBox position={[0.22, 0.055, 0.28]} width={0.13} height={0.1} length={0.12} materials={editable ? 'tfPast' : 'tfDusty'} />
       )}
       <Selectable field="frequency" interaction={inter} position={[BAND_X[state.frequency], 0.068, 0.35]} size={0.1}>
         <ViroBox width={0.055} height={0.018} length={0.055} materials="tfBrass" />
