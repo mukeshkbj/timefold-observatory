@@ -26,26 +26,36 @@ export default function ObservatoryVisuals({ state, scenario, interaction = null
 }) {
   const presentState = useLaggedValue(state, 450);
   const futureState = useLaggedValue(state, 900);
+  const [settled, setSettled] = useState(arrived);
+  useEffect(() => {
+    if (!arrived || settled) return;
+    const timer = setTimeout(() => setSettled(true), 1900);
+    return () => clearTimeout(timer);
+  }, [arrived, settled]);
   const layers = [
     buildEraVisuals(state, scenario)[0],
     buildEraVisuals(presentState, scenario)[1],
     buildEraVisuals(futureState, scenario)[2],
   ];
-  const scale = arrived ? 1 : 0.01;
+  const animating = arrived && !settled;
+  const scale = settled ? 1 : 0.01;
   return (
     <ViroNode lightReceivingBitMask={3} shadowCastingBitMask={2}>
       <ViroBox position={[0, -0.24, 0.45]} width={2.4} height={0.045} length={0.08} materials="tfBrass" />
       {layers.map((layer, i) => (
-        <ViroNode key={layer.era} scale={[scale, scale, scale]} position={[0, arrived ? 0 : -0.15, 0]}
-          animation={arrived ? { name: 'tfArrive', run: true, loop: false, delay: i * 220 } : undefined}>
+        <ViroNode key={layer.era} scale={[scale, scale, scale]} position={[0, settled ? 0 : -0.15, 0]}
+          animation={animating ? { name: 'tfArrive', run: true, loop: false, delay: i * 220 } : undefined}>
           <EraObservatory layer={layer} interaction={interaction} />
           <SceneLabel text={layer.year} position={[layer.x, 0.85, -0.05]} width={0.9} height={0.22} size={0.55} color="#d7b47b"
-            animation={arrived ? { name: 'tfLabelIn', run: true, loop: false, delay: 700 + i * 220 } : undefined} />
-          <SceneLabel text={layer.label} position={[layer.x, -0.21, 0.48]} width={1.0} height={0.07} size={0.16} color="#d7b47b" opacity={0.8}
-            animation={arrived ? { name: 'tfLabelInDim', run: true, loop: false, delay: 750 + i * 220 } : undefined} />
+            opacity={settled ? 1 : 0}
+            animation={animating ? { name: 'tfLabelIn', run: true, loop: false, delay: 700 + i * 220 } : undefined} />
+          <SceneLabel text={layer.label} position={[layer.x, -0.21, 0.48]} width={1.0} height={0.07} size={0.16} color="#d7b47b"
+            opacity={settled ? 0.8 : 0}
+            animation={animating ? { name: 'tfLabelInDim', run: true, loop: false, delay: 750 + i * 220 } : undefined} />
           <SceneLabel text={layer.status} position={[layer.x, -0.29, 0.48]} width={0.95} height={0.1} size={0.2}
             color={layer.hazard ? '#c96a52' : layer.era === 'future' && layer.signalRecovered ? '#8be0c4' : '#eee9df'}
-            animation={arrived ? { name: 'tfLabelIn', run: true, loop: false, delay: 750 + i * 220 } : undefined} />
+            opacity={settled ? 1 : 0}
+            animation={animating ? { name: 'tfLabelIn', run: true, loop: false, delay: 750 + i * 220 } : undefined} />
         </ViroNode>
       ))}
       {ripple && (

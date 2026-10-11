@@ -70,11 +70,13 @@ function DestinationMarkers({ layer, interaction }: { layer: EraVisual; interact
   const choices = placementChoices(field);
   const currentIndex = choices.findIndex(choice => choice.action.value === layer.state[field]);
   const marker = (position: Point, index: number) => (
-    <ViroSphere key={`${field}-${index}`} position={position} radius={0.028} scale={[1, 0.45, 1]}
-      materials={index === currentIndex ? 'tfBrass' : 'tfSignal'}
-      opacity={index === currentIndex ? 0.5 : 0.95}
-      animation={index === currentIndex ? undefined : { name: 'tfTargetPulse', run: true, loop: true }}
-      onClick={() => interaction.onPlace(index)} />
+    <ViroNode key={`${field}-${index}`} position={position}
+      animation={index === currentIndex ? undefined : { name: 'tfTargetPulse', run: true, loop: true }}>
+      <ViroSphere radius={0.028} scale={[1, 0.45, 1]}
+        materials={index === currentIndex ? 'tfBrass' : 'tfSignal'}
+        opacity={index === currentIndex ? 0.5 : 0.95}
+        onClick={() => interaction.onPlace(index)} />
+    </ViroNode>
   );
   const targets: { position: Point; index: number }[] = (() => {
     switch (field) {
@@ -159,9 +161,9 @@ export function BenchObjects({ layer, interaction, editable }: {
         </Selectable>
       )}
       {inter?.selected === 'lens' && (
-        <ViroNode position={[0.025, 0.49, 0.04]} rotation={[-22, MARKER_YAW[state.alignment], 0]}>
+        <ViroNode position={[0.025, 0.49, 0.04]} rotation={[-22, MARKER_YAW[state.alignment], 0]}
+          animation={{ name: 'tfTargetPulse', run: true, loop: true }}>
           <ViroSphere position={[0, 0, -0.25]} radius={0.055} scale={[1, 1, 0.35]} materials="tfSignal" opacity={0.4}
-            animation={{ name: 'tfTargetPulse', run: true, loop: true }}
             onClick={() => inter.onPlace(placementChoices('lens').findIndex(c => c.action.value === 'optic'))} />
         </ViroNode>
       )}

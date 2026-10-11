@@ -23,9 +23,18 @@ ViroMaterials.createMaterials({
 
 ViroAnimations.registerAnimations({
   tfGearSpin: { properties: { rotateZ: '+=360' }, duration: 5000 },
-  tfBeaconPulse: { properties: { scaleX: '+=0.5', scaleY: '+=0.5', scaleZ: '+=0.5' }, duration: 1200 },
-  tfTargetPulse: { properties: { scaleX: '+=0.35', scaleY: '+=0.35', scaleZ: '+=0.35' }, duration: 900 },
-  tfSignalBurst: { properties: { scaleX: '+=7', scaleY: '+=7', opacity: '-=1' }, duration: 2400 },
+  tfBeaconPulse: [
+    { properties: { scaleX: 1.45, scaleY: 1.45, scaleZ: 1.45 }, duration: 600, easing: 'EaseInEaseOut' },
+    { properties: { scaleX: 1, scaleY: 1, scaleZ: 1 }, duration: 600, easing: 'EaseInEaseOut' },
+  ],
+  tfTargetPulse: [
+    { properties: { scaleX: 1.3, scaleY: 1.3, scaleZ: 1.3 }, duration: 450, easing: 'EaseInEaseOut' },
+    { properties: { scaleX: 1, scaleY: 1, scaleZ: 1 }, duration: 450, easing: 'EaseInEaseOut' },
+  ],
+  tfSignalBurst: [
+    { properties: { scaleX: 1, scaleY: 1, opacity: 0.8 }, duration: 1 },
+    { properties: { scaleX: 8, scaleY: 8, opacity: 0 }, duration: 2400, easing: 'EaseOut' },
+  ],
   tfSelectPulse: [
     { properties: { scaleX: 1.18, scaleY: 1.18, scaleZ: 1.18 }, duration: 420, easing: 'EaseInEaseOut' },
     { properties: { scaleX: 1, scaleY: 1, scaleZ: 1 }, duration: 420, easing: 'EaseInEaseOut' },
