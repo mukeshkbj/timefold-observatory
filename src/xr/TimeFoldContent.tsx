@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import { ViroNode } from '@reactvision/react-viro';
+import { ViroNode, ViroSound } from '@reactvision/react-viro';
 import { randomUUID } from 'expo-crypto';
 import { getFact, primaryFact, type KeeperRequest } from '../../shared/keeper';
 import { buildEraVisuals } from '../../shared/presentation';
@@ -19,6 +19,8 @@ export default function TimeFoldContent({ onExit }: { onExit: () => void }) {
   const [keeper, setKeeper] = useState('The keeper watches the workbench. Select an object in the past.');
   const [highlights, setHighlights] = useState<readonly PuzzleField[]>([]);
   const [level, setLevel] = useState<KeeperRequest['hintLevel']>(1);
+  const [sfx, setSfx] = useState<{ id: number; hazard: boolean } | null>(null);
+  const sfxId = useRef(0);
   useEffect(() => {
     mounted.current = true;
     loadProgress().then(saved => {
@@ -37,6 +39,8 @@ export default function TimeFoldContent({ onExit }: { onExit: () => void }) {
     current.current = next;
     setSession(next);
     if (next.game !== before.game) {
+      const bypassed = next.game.state.cell === 'main' && next.game.state.fuse === 'bypass';
+      setSfx({ id: ++sfxId.current, hazard: bypassed });
       setHighlights(next.trace?.highlights ?? []);
       setKeeper('The timeline shifted. Ask the keeper for a hint or an explanation.');
       const completed = chapterComplete(next.game, next.chapter) && !chapterComplete(before.game, next.chapter);
@@ -78,5 +82,6 @@ export default function TimeFoldContent({ onExit }: { onExit: () => void }) {
     <SceneLabel text={world.signalRecovered ? recoveredMessage : keeper} position={[0, -2.1, 0.58]} width={2.4} height={0.23} color="#eee9df" size={0.32} />
     <SceneLabel text={message} position={[0, -2.38, 0.58]} width={2.4} height={0.24} color="#b6c1b8" size={0.26} />
     </ViroNode>
+    {sfx && <ViroSound key={sfx.id} source={sfx.hazard ? require('../../assets/audio/hazard.wav') : require('../../assets/audio/place-chime.wav')} volume={0.5} onFinish={() => setSfx(current => current?.id === sfx.id ? null : current)} onError={() => setSfx(current => current?.id === sfx.id ? null : current)} />}
   </ViroNode>;
 }
