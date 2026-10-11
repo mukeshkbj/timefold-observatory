@@ -33,7 +33,7 @@ export default function TimeFoldContent() {
   const game = snap.session.game;
   return (
     <ViroNode>
-      <ViroAmbientLight color="#ffffff" intensity={300} />
+      <ViroAmbientLight color={isQuest ? '#ffffff' : snap.ambient.color} intensity={isQuest ? 300 : snap.ambient.intensity} />
       <ViroDirectionalLight color="#fff1d6" direction={[-0.35, -1, -0.45]} intensity={600}
         castsShadow shadowOpacity={0.5} shadowMapSize={2048}
         shadowOrthographicSize={3} shadowOrthographicPosition={[0, 0.4, 0]} influenceBitMask={2} />

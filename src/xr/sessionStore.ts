@@ -6,6 +6,7 @@ import { getFact, primaryFact, type KeeperRequest } from '../../shared/keeper';
 import { caseLabel, chapterComplete, chapterContent, clueText, INTRO_CARDS, newPuzzleSession, recoveredMessage, reducePuzzle, type PuzzleAction, type PuzzleField, type PuzzleSession } from '../../shared/puzzle';
 import { caseCount, clueChapters, deriveWorld, newGame } from '../../shared/timefold';
 import { loadProgress, saveProgress } from '../timefold/progress';
+import { AMBIENT_DEFAULT, type AmbientLight, type TrackingHint } from './arMath';
 
 const INTRO_KEY = 'timefold.intro.v1';
 const VOICE_KEY = 'timefold.voice.v1';
@@ -27,6 +28,10 @@ export type TimeFoldSnapshot = Readonly<{
   debriefOpen: boolean;
   introOpen: boolean;
   voice: boolean;
+  tracking: TrackingHint;
+  ambient: AmbientLight;
+  replaceRequest: number;
+  gestureHint: boolean;
 }>;
 export type TimeFoldActions = {
   init: () => void;
@@ -41,6 +46,10 @@ export type TimeFoldActions = {
   openIntro: () => void;
   closeIntro: () => void;
   toggleVoice: () => void;
+  setTracking: (tracking: TrackingHint) => void;
+  setAmbient: (ambient: AmbientLight) => void;
+  requestReplace: () => void;
+  dismissGestureHint: () => void;
 };
 
 let snapshot: TimeFoldSnapshot = {
@@ -56,6 +65,10 @@ let snapshot: TimeFoldSnapshot = {
   debriefOpen: false,
   introOpen: false,
   voice: true,
+  tracking: null,
+  ambient: AMBIENT_DEFAULT,
+  replaceRequest: 0,
+  gestureHint: false,
 };
 const listeners = new Set<() => void>();
 let rippleId = 0;
@@ -197,7 +210,14 @@ export const actions: TimeFoldActions = {
   ask,
   cycleHint: () => emit({ hintLevel: snapshot.hintLevel === 3 ? 1 : snapshot.hintLevel === 1 ? 2 : 3 }),
   newCase,
-  setPlacement: placement => emit({ placement }),
+  setPlacement: placement => {
+    if (placement === snapshot.placement) return;
+    emit(placement === 'placed' ? { placement, gestureHint: true } : { placement, gestureHint: false });
+  },
+  setTracking: tracking => { if (tracking !== snapshot.tracking) emit({ tracking }); },
+  setAmbient: ambient => emit({ ambient }),
+  requestReplace: () => emit({ replaceRequest: snapshot.replaceRequest + 1, gestureHint: false }),
+  dismissGestureHint: () => { if (snapshot.gestureHint) emit({ gestureHint: false }); },
   closeDebrief: () => emit({ debriefOpen: false }),
   clearSfx: id => { if (snapshot.sfx?.id === id) emit({ sfx: null }); },
   openIntro: () => emit({ introOpen: true }),
@@ -212,6 +232,10 @@ export const actions: TimeFoldActions = {
     if (!voice) stopSpeech();
   },
 };
+
+export function useReplaceRequest() {
+  return useSyncExternalStore(subscribe, () => snapshot.replaceRequest);
+}
 
 export function useTimeFold() {
   const state = useSyncExternalStore(subscribe, () => snapshot);

@@ -7,6 +7,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { buildDebrief } from '../../shared/debrief';
 import { caseLabel, chapterComplete, chapterContent, chapterFields, clueText, objectNames, placementChoices } from '../../shared/puzzle';
 import { clueChapters, deriveWorld, type ClueId } from '../../shared/timefold';
+import type { TrackingHint } from './arMath';
 import { INTRO_CARDS, useTimeFold } from './sessionStore';
 
 const C = {
@@ -22,6 +23,12 @@ const C = {
 const CLUES: readonly ClueId[] = ['wiring', 'sky', 'plaque'];
 const CLUE_NAME: Readonly<Record<ClueId, string>> = { wiring: 'Wiring', sky: 'Sky', plaque: 'Plaque' };
 const CLUE_ERA: Readonly<Record<ClueId, string>> = { wiring: 'Find it in 2026', sky: 'Find it in 2086', plaque: 'Find it in 2086' };
+
+const TRACKING_COACH: Readonly<Record<NonNullable<TrackingHint>, string>> = {
+  motion: 'Moving too fast — slow down',
+  features: 'Not enough detail — aim at a textured, well-lit surface',
+  unavailable: 'Tracking lost — hold steady',
+};
 
 const haptic = (promise: Promise<unknown>) => { promise.catch(() => undefined); };
 
@@ -79,7 +86,18 @@ export default function PhoneHud() {
     prevUnlocked.current = game.unlocked;
   }, [game.unlocked]);
 
+  useEffect(() => {
+    if (!snap.gestureHint) return;
+    const timer = setTimeout(snap.actions.dismissGestureHint, 6000);
+    return () => clearTimeout(timer);
+  }, [snap.gestureHint, snap.actions]);
+
   const clueCard = openClue && game.evidence.includes(openClue) ? clueText(game.scenario, openClue) : null;
+  const coach = snap.tracking ? TRACKING_COACH[snap.tracking]
+    : snap.placement === 'scanning' ? 'Move your phone slowly across a table'
+    : snap.placement === 'surface' ? 'Tap the highlighted surface to place the observatory'
+    : snap.gestureHint && !snap.introOpen ? 'Pinch to resize · Twist to rotate'
+    : null;
 
   return (
     <View style={styles.root} pointerEvents="box-none">
@@ -108,12 +126,10 @@ export default function PhoneHud() {
           </Pressable>
         </View>
         <Text style={styles.objective} numberOfLines={2}>{chapterContent[session.chapter].objective}</Text>
-        {snap.placement !== 'placed' && (
-          <View style={styles.coach}>
-            <Text style={styles.coachText}>
-              {snap.placement === 'scanning' ? 'Move your phone slowly across a table' : 'Tap the highlighted surface to place the observatory'}
-            </Text>
-          </View>
+        {coach && (
+          <Animated.View key={coach} entering={FadeIn} exiting={FadeOut} style={styles.coach}>
+            <Text style={styles.coachText}>{coach}</Text>
+          </Animated.View>
         )}
       </Animated.View>
 
@@ -233,6 +249,9 @@ export default function PhoneHud() {
             accessibilityLabel={`Keeper voice, currently ${snap.voice ? 'on' : 'off'}. Toggle`}
             tone="dark"
             onPress={snap.actions.toggleVoice} />
+          <HudButton label="Move observatory" accessibilityLabel="Pick a new surface for the observatory" tone="dark"
+            disabled={snap.placement !== 'placed'}
+            onPress={() => { setMenuOpen(false); snap.actions.requestReplace(); }} />
           <HudButton label="Save" accessibilityLabel="Save checkpoint" tone="brass"
             onPress={() => { setMenuOpen(false); void snap.actions.save(); }} />
           <HudButton label="Reset chapter" accessibilityLabel="Reset current chapter" tone="dark" disabled={snap.busy}

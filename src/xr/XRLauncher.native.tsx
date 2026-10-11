@@ -1,7 +1,7 @@
 import Constants from 'expo-constants';
 import { router, useLocalSearchParams } from 'expo-router';
 import { isQuest, ViroXRSceneNavigator } from '@reactvision/react-viro';
-import { useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import PhoneHud from './PhoneHud';
@@ -16,6 +16,11 @@ export default function XRLauncher() {
   const inspecting = view === 'observatory';
   const arAlive = useRef(false);
   const [arStalled, setArStalled] = useState(false);
+  const onArAlive = useCallback(() => { arAlive.current = true; setArStalled(false); }, []);
+  const arScene = useMemo(() => ({
+    scene: inspecting ? function ObservatoryAR() { return <TimeFoldPhoneScene onArAlive={onArAlive} />; } : PhoneScene,
+  }), [inspecting, onArAlive]);
+  const vrScene = useMemo(() => ({ scene: inspecting ? TimeFoldQuestScene : QuestScene }), [inspecting]);
   useEffect(() => {
     if (isQuest) return;
     const timer = setTimeout(() => { if (!arAlive.current) setArStalled(true); }, 14000);
@@ -34,12 +39,12 @@ export default function XRLauncher() {
   }
   return (
     <View style={styles.navigator}>
-      <ViroXRSceneNavigator arInitialScene={{ scene: inspecting ? () => <TimeFoldPhoneScene onArAlive={() => { arAlive.current = true; setArStalled(false); }} /> : PhoneScene }} vrInitialScene={{ scene: inspecting ? TimeFoldQuestScene : QuestScene }}
+      <ViroXRSceneNavigator arInitialScene={arScene} vrInitialScene={vrScene}
         onExitViro={() => router.replace('/')} hdrEnabled={false} bloomEnabled={false} handTrackingEnabled={false} style={styles.navigator} />
       {inspecting && !isQuest && <PhoneHud />}
       {!inspecting && !isQuest && <Pressable accessibilityRole="button" onPress={() => router.replace('/')} style={[styles.exit, { top: insets.top + 8 }]}><Text style={styles.buttonText}>Return home</Text></Pressable>}
       {arStalled && <View style={[styles.stalled, { bottom: insets.bottom + 24 }]}>
-        <Text style={styles.stalledText}>No AR response — this device may not support ARCore. The logic lab runs the same puzzle in 2D.</Text>
+        <Text style={styles.stalledText}>No AR response — this device may not support AR. The logic lab runs the same puzzle in 2D.</Text>
         <Pressable accessibilityRole="button" onPress={() => router.replace('/lab')} style={styles.stalledButton}><Text style={styles.buttonText}>Open logic lab</Text></Pressable>
       </View>}
     </View>
