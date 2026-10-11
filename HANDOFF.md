@@ -11,7 +11,7 @@ TimeFold: The Last Observatory — a causal-chain XR puzzle for the Expo × Reac
 One observatory in three eras (1986 editable / 2026 / 2086 derived); repairs in the
 past propagate live. Targets: iOS+Android phone AR and Meta Quest.
 
-Public repo: **https://github.com/hridaya423/timefold-observatory**
+Public repo: **https://github.com/mukeshkbj/timefold-observatory**
 (branch `build/timefold-native`, 4 commits, clean of secrets).
 
 ## What's done (all verified: tsc clean, eslint clean, 48/48 node:test pass)
@@ -130,7 +130,7 @@ on-screen explanation; the keeper hint tiers satisfy the on-screen part).
 - Stack: Expo 57, RN 0.86, expo-router, @reactvision/react-viro 3.0, Supabase
   Edge Functions (Deno) + Postgres quota layer, Zod, node:test.
 - Platforms: iOS, Android, Meta Quest (+ web logic lab).
-- Repo: https://github.com/hridaya423/timefold-observatory
+- Repo: https://github.com/mukeshkbj/timefold-observatory
 
 ## Environment notes
 
