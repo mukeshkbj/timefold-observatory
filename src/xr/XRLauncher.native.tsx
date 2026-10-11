@@ -4,6 +4,7 @@ import { isQuest, ViroXRSceneNavigator } from '@reactvision/react-viro';
 import { useEffect, useRef, useState } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
+import PhoneHud from './PhoneHud';
 import PhoneScene from './PhoneScene';
 import QuestScene from './QuestScene';
 import TimeFoldPhoneScene from './TimeFoldPhoneScene';
@@ -35,7 +36,8 @@ export default function XRLauncher() {
     <View style={styles.navigator}>
       <ViroXRSceneNavigator arInitialScene={{ scene: inspecting ? () => <TimeFoldPhoneScene onArAlive={() => { arAlive.current = true; setArStalled(false); }} /> : PhoneScene }} vrInitialScene={{ scene: inspecting ? TimeFoldQuestScene : QuestScene }}
         onExitViro={() => router.replace('/')} hdrEnabled={false} bloomEnabled={false} handTrackingEnabled={false} style={styles.navigator} />
-      {!isQuest && <Pressable accessibilityRole="button" onPress={() => router.replace('/')} style={[styles.exit, { top: insets.top + 8 }]}><Text style={styles.buttonText}>Return home</Text></Pressable>}
+      {inspecting && !isQuest && <PhoneHud />}
+      {!inspecting && !isQuest && <Pressable accessibilityRole="button" onPress={() => router.replace('/')} style={[styles.exit, { top: insets.top + 8 }]}><Text style={styles.buttonText}>Return home</Text></Pressable>}
       {arStalled && <View style={[styles.stalled, { bottom: insets.bottom + 24 }]}>
         <Text style={styles.stalledText}>No AR response — this device may not support ARCore. The logic lab runs the same puzzle in 2D.</Text>
         <Pressable accessibilityRole="button" onPress={() => router.replace('/lab')} style={styles.stalledButton}><Text style={styles.buttonText}>Open logic lab</Text></Pressable>
