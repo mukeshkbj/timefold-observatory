@@ -1,5 +1,5 @@
-import { useEffect } from 'react';
-import { ViroAmbientLight, ViroDirectionalLight, ViroNode, ViroOmniLight, ViroQuad, ViroSound } from '@reactvision/react-viro';
+import { useEffect, useRef, useState } from 'react';
+import { isQuest, ViroAmbientLight, ViroDirectionalLight, ViroNode, ViroOmniLight, ViroQuad, ViroSound } from '@reactvision/react-viro';
 import ObservatoryVisuals from './ObservatoryVisuals';
 import { actions, useTimeFold } from './sessionStore';
 
@@ -13,7 +13,23 @@ const SFX = {
 
 export default function TimeFoldContent() {
   const snap = useTimeFold();
+  const [arrived, setArrived] = useState(false);
+  const [arrivalRippleSfx, setArrivalRippleSfx] = useState(false);
+  const arrivalDone = useRef(false);
+  const arrivalTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   useEffect(() => actions.init(), []);
+  useEffect(() => () => { if (arrivalTimer.current) clearTimeout(arrivalTimer.current); }, []);
+  useEffect(() => {
+    if (arrivalDone.current || snap.busy || !(snap.placement === 'placed' || isQuest)) return;
+    // Phone mounts this component inside ViroARPlaneSelector, which only renders
+    // children once a plane is selected — so 'placed' is already set on mount.
+    // Quest mounts immediately, so gate on the store being ready instead.
+    arrivalDone.current = true;
+    arrivalTimer.current = setTimeout(() => {
+      setArrived(true);
+      arrivalTimer.current = setTimeout(() => setArrivalRippleSfx(true), 1050);
+    }, 0);
+  }, [snap.busy, snap.placement]);
   const game = snap.session.game;
   return (
     <ViroNode>
@@ -30,7 +46,8 @@ export default function TimeFoldContent() {
       <ObservatoryVisuals
         state={game.state}
         scenario={game.scenario}
-        ripple={snap.ripple}
+        ripple={snap.ripple ?? (arrived ? { id: 'arrival', hazard: false, delay: 1100 } : null)}
+        arrived={arrived}
         interaction={{
           selected: snap.session.selected,
           highlights: snap.highlights,
@@ -39,6 +56,12 @@ export default function TimeFoldContent() {
           onPlace: index => actions.dispatch({ kind: 'placeChoice', index }),
           onInspect: clue => actions.dispatch({ kind: 'inspect', clue }),
         }} />
+      {arrived && (
+        <ViroSound key="arrival-chime" source={SFX.place} volume={0.55} />
+      )}
+      {arrivalRippleSfx && (
+        <ViroSound key="arrival-ripple" source={SFX.ripple} volume={0.22} />
+      )}
       {snap.sfx && (
         <ViroSound key={snap.sfx.id} source={SFX[snap.sfx.kind]}
           volume={snap.sfx.kind === 'hazard' ? 0.7 : 0.55}

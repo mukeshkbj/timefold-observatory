@@ -38,4 +38,13 @@ ViroAnimations.registerAnimations({
     { properties: { positionX: '+=2.3', scaleX: '+=0.7', scaleZ: '+=0.7' }, duration: 900, easing: 'EaseInEaseOut' },
     { properties: { opacity: 0 }, duration: 220, easing: 'EaseOut' },
   ],
+  tfArrive: { properties: { scaleX: 1, scaleY: 1, scaleZ: 1, positionY: 0 }, duration: 650, easing: 'EaseOut' },
+  tfLabelIn: [
+    { properties: { opacity: 0 }, duration: 1 },
+    { properties: { opacity: 1 }, duration: 450, easing: 'EaseIn' },
+  ],
+  tfLabelInDim: [
+    { properties: { opacity: 0 }, duration: 1 },
+    { properties: { opacity: 0.8 }, duration: 450, easing: 'EaseIn' },
+  ],
 });

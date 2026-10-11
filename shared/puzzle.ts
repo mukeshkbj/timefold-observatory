@@ -17,6 +17,11 @@ export const chapterContent: Readonly<Record<Chapter, { title: string; objective
   3: { title: 'Recover the signal', objective: 'Find the band etched into the 2086 ruin and tune the 1986 receiver to it.', story: 'The signal crossed generations. Give the future keeper a way to hear it.' },
 };
 export const recoveredMessage = 'To the keeper who finds this room: the sky was never silent. We were waiting for someone to listen.';
+export const INTRO_CARDS: readonly { title: string; body: string }[] = [
+  { title: 'Three eras, one table', body: '1986 is the only one you can touch.' },
+  { title: 'The answers live downstream', body: 'Tap evidence in 2026 and 2086.' },
+  { title: 'Repair the past', body: 'Watch the ripple carry it forward. Bridging the fuse under load has consequences.' },
+];
 const choices: Readonly<Record<PuzzleField, readonly PlacementChoice[]>> = {
   cell: [{ label: 'Bench', action: { kind: 'change', field: 'cell', value: 'home' } }, { label: 'Socket A', action: { kind: 'change', field: 'cell', value: 'a' } }, { label: 'Socket B', action: { kind: 'change', field: 'cell', value: 'b' } }],
   fuse: [{ label: 'Bench', action: { kind: 'change', field: 'fuse', value: 'home' } }, { label: 'Protection socket', action: { kind: 'change', field: 'fuse', value: 'protected' } }, { label: 'Bypass link', action: { kind: 'change', field: 'fuse', value: 'bypass' } }],

@@ -7,7 +7,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { buildDebrief } from '../../shared/debrief';
 import { caseLabel, chapterComplete, chapterContent, chapterFields, clueText, objectNames, placementChoices } from '../../shared/puzzle';
 import { clueChapters, deriveWorld, type ClueId } from '../../shared/timefold';
-import { useTimeFold } from './sessionStore';
+import { INTRO_CARDS, useTimeFold } from './sessionStore';
 
 const C = {
   bg: '#141817',
@@ -59,6 +59,7 @@ export default function PhoneHud() {
   const [menuOpen, setMenuOpen] = useState(false);
   const [armCase, setArmCase] = useState(false);
   const [openClue, setOpenClue] = useState<ClueId | null>(null);
+  const [introPage, setIntroPage] = useState(0);
   const { session } = snap;
   const game = session.game;
   const world = deriveWorld(game.state, game.scenario);
@@ -226,6 +227,12 @@ export default function PhoneHud() {
       <Modal visible={menuOpen} transparent animationType="none" onRequestClose={() => setMenuOpen(false)}>
         <Pressable style={styles.sheetBackdrop} onPress={() => setMenuOpen(false)} accessibilityLabel="Close menu" />
         <Animated.View entering={SlideInDown} exiting={SlideOutDown} style={[styles.menuSheet, { paddingBottom: insets.bottom + 16 }]}>
+          <HudButton label="How to play" accessibilityLabel="Show the intro cards" tone="dark"
+            onPress={() => { setMenuOpen(false); setIntroPage(0); snap.actions.openIntro(); }} />
+          <HudButton label={`Keeper voice: ${snap.voice ? 'on' : 'off'}`}
+            accessibilityLabel={`Keeper voice, currently ${snap.voice ? 'on' : 'off'}. Toggle`}
+            tone="dark"
+            onPress={snap.actions.toggleVoice} />
           <HudButton label="Save" accessibilityLabel="Save checkpoint" tone="brass"
             onPress={() => { setMenuOpen(false); void snap.actions.save(); }} />
           <HudButton label="Reset chapter" accessibilityLabel="Reset current chapter" tone="dark" disabled={snap.busy}
@@ -278,6 +285,28 @@ export default function PhoneHud() {
           </ScrollView>
         </View>
       </Modal>
+
+      {snap.introOpen && (
+        <Animated.View entering={FadeIn} style={[styles.introOverlay, { paddingTop: insets.top, paddingBottom: insets.bottom }]}>
+          <View style={styles.introCard}>
+            <Text style={styles.introStep}>{introPage + 1} / {INTRO_CARDS.length}</Text>
+            <Text style={styles.introTitle}>{INTRO_CARDS[introPage].title}</Text>
+            <Text style={styles.introBody}>{INTRO_CARDS[introPage].body}</Text>
+            <View style={styles.introDots} accessibilityLabel={`Intro card ${introPage + 1} of ${INTRO_CARDS.length}`}>
+              {INTRO_CARDS.map((card, i) => (
+                <View key={card.title} style={[styles.introDot, i === introPage && styles.introDotOn]} />
+              ))}
+            </View>
+            <HudButton label={introPage < INTRO_CARDS.length - 1 ? 'Next' : 'Start'} tone="brass"
+              accessibilityLabel={introPage < INTRO_CARDS.length - 1 ? 'Next intro card' : 'Start playing'}
+              onPress={() => {
+                haptic(Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light));
+                if (introPage < INTRO_CARDS.length - 1) setIntroPage(introPage + 1);
+                else { setIntroPage(0); snap.actions.closeIntro(); }
+              }} />
+          </View>
+        </Animated.View>
+      )}
     </View>
   );
 }
@@ -326,6 +355,14 @@ const styles = StyleSheet.create({
   sheetBackdrop: { flex: 1, backgroundColor: '#00000088' },
   menuSheet: { position: 'absolute', left: 0, right: 0, bottom: 0, backgroundColor: C.panel, borderTopLeftRadius: 18, borderTopRightRadius: 18, padding: 16, gap: 10 },
   debriefBackdrop: { flex: 1, backgroundColor: '#000000CC', justifyContent: 'center' },
+  introOverlay: { position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: '#0a0f0eE6', justifyContent: 'center', padding: 24 },
+  introCard: { backgroundColor: C.panel, borderRadius: 18, padding: 24, gap: 14, borderWidth: 1, borderColor: C.brass },
+  introStep: { color: C.muted, fontSize: 12, letterSpacing: 1.5 },
+  introTitle: { color: C.signal, fontSize: 24, fontWeight: '700' },
+  introBody: { color: C.ink, fontSize: 16, lineHeight: 24 },
+  introDots: { flexDirection: 'row', gap: 8, justifyContent: 'center' },
+  introDot: { width: 8, height: 8, borderRadius: 4, backgroundColor: '#3a4744' },
+  introDotOn: { backgroundColor: C.brass },
   debriefScroll: { flexGrow: 1, justifyContent: 'center', padding: 24 },
   debriefCard: { backgroundColor: C.panel, borderRadius: 20, padding: 22, borderWidth: 1, borderColor: C.brass, gap: 10 },
   debriefCase: { color: C.brass, fontSize: 12, letterSpacing: 1.6, fontWeight: '700' },

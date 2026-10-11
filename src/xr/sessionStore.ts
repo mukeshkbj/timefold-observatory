@@ -1,9 +1,16 @@
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { randomUUID } from 'expo-crypto';
+import * as Speech from 'expo-speech';
 import { useSyncExternalStore } from 'react';
 import { getFact, primaryFact, type KeeperRequest } from '../../shared/keeper';
-import { caseLabel, chapterComplete, chapterContent, clueText, newPuzzleSession, reducePuzzle, type PuzzleAction, type PuzzleField, type PuzzleSession } from '../../shared/puzzle';
+import { caseLabel, chapterComplete, chapterContent, clueText, INTRO_CARDS, newPuzzleSession, recoveredMessage, reducePuzzle, type PuzzleAction, type PuzzleField, type PuzzleSession } from '../../shared/puzzle';
 import { caseCount, clueChapters, deriveWorld, newGame } from '../../shared/timefold';
 import { loadProgress, saveProgress } from '../timefold/progress';
+
+const INTRO_KEY = 'timefold.intro.v1';
+const VOICE_KEY = 'timefold.voice.v1';
+
+export { INTRO_CARDS };
 
 export type SfxKind = 'place' | 'hazard' | 'inspect' | 'signal' | 'ripple';
 export type Placement = 'scanning' | 'surface' | 'placed';
@@ -18,6 +25,8 @@ export type TimeFoldSnapshot = Readonly<{
   sfx: { id: number; kind: SfxKind } | null;
   ripple: { id: number; hazard: boolean } | null;
   debriefOpen: boolean;
+  introOpen: boolean;
+  voice: boolean;
 }>;
 export type TimeFoldActions = {
   init: () => void;
@@ -29,6 +38,9 @@ export type TimeFoldActions = {
   setPlacement: (placement: Placement) => void;
   closeDebrief: () => void;
   clearSfx: (id: number) => void;
+  openIntro: () => void;
+  closeIntro: () => void;
+  toggleVoice: () => void;
 };
 
 let snapshot: TimeFoldSnapshot = {
@@ -42,6 +54,8 @@ let snapshot: TimeFoldSnapshot = {
   sfx: null,
   ripple: null,
   debriefOpen: false,
+  introOpen: false,
+  voice: true,
 };
 const listeners = new Set<() => void>();
 let rippleId = 0;
@@ -58,14 +72,36 @@ function subscribe(listener: () => void) {
   return () => { listeners.delete(listener); };
 }
 
+function stopSpeech() {
+  try { void Promise.resolve(Speech.stop()).catch(() => undefined); } catch { /* speech unavailable */ }
+}
+
+function speak(text: string) {
+  if (!snapshot.voice) return;
+  try {
+    void Promise.resolve(Speech.stop()).catch(() => undefined).then(() => {
+      try { Speech.speak(text, { rate: 0.95, pitch: 0.9, language: 'en-GB' }); } catch { /* speech unavailable */ }
+    });
+  } catch { /* speech unavailable */ }
+}
+
 function init() {
   if (started) return;
   started = true;
-  loadProgress().then(saved => {
-    emit(saved
-      ? { session: newPuzzleSession(saved), busy: false, message: 'Checkpoint restored.' }
-      : { busy: false, message: 'No saved game. Repairs stay in memory until you Save.' });
-  }).catch(() => emit({ busy: false, message: 'Storage unavailable. Play works in memory.' }));
+  Promise.all([
+    loadProgress(),
+    AsyncStorage.getItem(INTRO_KEY).catch(() => '1'),
+    AsyncStorage.getItem(VOICE_KEY).catch(() => null),
+  ]).then(([saved, intro, voice]) => {
+    emit({
+      ...(saved
+        ? { session: newPuzzleSession(saved), message: 'Checkpoint restored.' }
+        : { message: 'No saved game. Repairs stay in memory until you Save.' }),
+      busy: false,
+      introOpen: intro === null,
+      voice: voice !== '0',
+    });
+  }).catch(() => emit({ busy: false, introOpen: true, message: 'Storage unavailable. Play works in memory.' }));
 }
 
 function dispatch(action: PuzzleAction) {
@@ -80,9 +116,12 @@ function dispatch(action: PuzzleAction) {
     return;
   }
   if (next.game === before.game) {
-    emit(next.chapter !== before.chapter
-      ? { session: next, highlights: [], keeper: chapterContent[next.chapter].story }
-      : { session: next });
+    if (next.chapter !== before.chapter) {
+      emit({ session: next, highlights: [], keeper: chapterContent[next.chapter].story });
+      speak(chapterContent[next.chapter].story);
+    } else {
+      emit({ session: next });
+    }
     return;
   }
   if (action.kind === 'inspect') {
@@ -93,6 +132,7 @@ function dispatch(action: PuzzleAction) {
       keeper: clue.detail,
       message: `Evidence recorded: ${clue.title}.`,
     });
+    speak(clue.detail);
     return;
   }
   const beforeWorld = deriveWorld(before.game.state, before.game.scenario);
@@ -100,18 +140,21 @@ function dispatch(action: PuzzleAction) {
   const kind: SfxKind = world.hazard && !beforeWorld.hazard ? 'hazard'
     : world.signalRecovered && !beforeWorld.signalRecovered ? 'signal' : 'place';
   const completed = chapterComplete(next.game, before.chapter) && !chapterComplete(before.game, before.chapter);
+  const keeper = kind === 'signal' ? recoveredMessage
+    : next.chapter !== before.chapter ? chapterContent[next.chapter].story
+    : 'The timeline shifted. Ask the keeper for a hint or an explanation.';
   emit({
     session: next,
     sfx: { id: ++sfxId, kind },
     ripple: { id: ++rippleId, hazard: world.hazard },
     highlights: next.trace?.highlights ?? [],
-    keeper: next.chapter !== before.chapter ? chapterContent[next.chapter].story
-      : 'The timeline shifted. Ask the keeper for a hint or an explanation.',
+    keeper,
     message: completed
       ? `Chapter ${before.chapter} complete. Chapters learned: ${next.game.unlocked}.`
       : `Revision ${next.game.revision}. Chapters learned: ${next.game.unlocked}.`,
     debriefOpen: kind === 'signal' ? true : snapshot.debriefOpen,
   });
+  if (kind === 'signal' || next.chapter !== before.chapter) speak(keeper);
 }
 
 async function save() {
@@ -132,6 +175,7 @@ function ask(question: 'hint' | 'explain') {
   };
   const fact = getFact(primaryFact(request));
   emit({ keeper: fact.text, highlights: fact.highlights });
+  speak(fact.text);
 }
 
 function newCase() {
@@ -156,6 +200,17 @@ export const actions: TimeFoldActions = {
   setPlacement: placement => emit({ placement }),
   closeDebrief: () => emit({ debriefOpen: false }),
   clearSfx: id => { if (snapshot.sfx?.id === id) emit({ sfx: null }); },
+  openIntro: () => emit({ introOpen: true }),
+  closeIntro: () => {
+    emit({ introOpen: false });
+    void AsyncStorage.setItem(INTRO_KEY, '1').catch(() => undefined);
+  },
+  toggleVoice: () => {
+    const voice = !snapshot.voice;
+    emit({ voice });
+    void AsyncStorage.setItem(VOICE_KEY, voice ? '1' : '0').catch(() => undefined);
+    if (!voice) stopSpeech();
+  },
 };
 
 export function useTimeFold() {

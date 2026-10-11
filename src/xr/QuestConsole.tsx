@@ -5,7 +5,7 @@ import { caseLabel, chapterComplete, chapterContent, chapterFields, objectNames,
 import { clueChapters, type ClueId } from '../../shared/timefold';
 import SceneLabel from './SceneLabel';
 import './diorama/materials';
-import type { TimeFoldActions, TimeFoldSnapshot } from './sessionStore';
+import { INTRO_CARDS, type TimeFoldActions, type TimeFoldSnapshot } from './sessionStore';
 import type { Point } from './diorama/types';
 
 const CLUE_NAME: Readonly<Record<ClueId, string>> = { wiring: 'Wiring', sky: 'Sky', plaque: 'Plaque' };
@@ -41,12 +41,29 @@ function DebriefPanel({ snap, actions }: { snap: TimeFoldSnapshot; actions: Time
   );
 }
 
-export default function QuestConsole({ snap, actions, onExit }: {
+function IntroPanel({ page, onNext }: { page: number; onNext: () => void }) {
+  const card = INTRO_CARDS[page];
+  return (
+    <ViroNode>
+      <SceneLabel text="HOW TO PLAY" position={[0, 0.22, 0.02]} width={0.9} height={0.05} size={0.18} color="#d7b47b" />
+      <SceneLabel text={card.title} position={[0, 0.11, 0.02]} width={0.9} height={0.09} size={0.3} color="#8be0c4" />
+      <SceneLabel text={card.body} position={[0, -0.03, 0.02]} width={0.9} height={0.15} size={0.2} color="#eee9df" />
+      <SceneLabel text={INTRO_CARDS.map((_, i) => (i === page ? '●' : '○')).join('  ')}
+        position={[0, -0.16, 0.02]} width={0.9} height={0.05} size={0.2} color="#d7b47b" />
+      <ConsoleButton label={page < INTRO_CARDS.length - 1 ? 'Next' : 'Start'} position={[0, -0.235, 0.01]} width={0.3}
+        tint="tfBrass" labelColor="#141817" onPress={onNext} />
+    </ViroNode>
+  );
+}
+
+export default function QuestConsole({ snap, actions, onExit, onRecenter }: {
   snap: TimeFoldSnapshot;
   actions: TimeFoldActions;
   onExit: () => void;
+  onRecenter?: () => void;
 }) {
   const [confirmCase, setConfirmCase] = useState(false);
+  const [introPage, setIntroPage] = useState(0);
   const { session } = snap;
   const game = session.game;
   const fields = chapterFields[session.chapter];
@@ -70,7 +87,10 @@ export default function QuestConsole({ snap, actions, onExit }: {
       <ViroBox position={[0, -0.275, 0]} width={1.0} height={0.015} length={0.03} materials="tfBrass" />
       <ViroBox position={[-0.5, 0, 0]} width={0.015} height={0.55} length={0.03} materials="tfBrass" />
       <ViroBox position={[0.5, 0, 0]} width={0.015} height={0.55} length={0.03} materials="tfBrass" />
-      {snap.debriefOpen ? <DebriefPanel snap={snap} actions={actions} /> : (
+      {snap.introOpen ? (
+        <IntroPanel page={introPage}
+          onNext={() => { if (introPage < INTRO_CARDS.length - 1) setIntroPage(introPage + 1); else { setIntroPage(0); actions.closeIntro(); } }} />
+      ) : snap.debriefOpen ? <DebriefPanel snap={snap} actions={actions} /> : (
         <ViroNode>
           <SceneLabel text={caseLabel(game.scenario)} position={[-0.34, 0.22, 0.02]} width={0.3} height={0.06} size={0.24} color="#d7b47b" />
           {([1, 2, 3] as const).map((chapter, i) => {
@@ -131,12 +151,18 @@ export default function QuestConsole({ snap, actions, onExit }: {
               disabled={snap.busy} onPress={actions.cycleHint} />
           </ViroNode>
           <ViroNode>
-            <ConsoleButton label="Reset ch." position={[-0.3, -0.245, 0.01]} width={0.2}
+            <ConsoleButton label="Reset" position={[-0.41, -0.245, 0.01]} width={0.14}
               disabled={snap.busy || resetPending} onPress={() => actions.dispatch({ kind: 'requestReset' })} />
-            <ConsoleButton label={confirmCase ? 'Confirm new case?' : 'New case'} position={[0, -0.245, 0.01]} width={0.26}
+            <ConsoleButton label={confirmCase ? 'Confirm?' : 'New case'} position={[-0.235, -0.245, 0.01]} width={0.17}
               tint={confirmCase ? 'tfHazard' : 'tfDark'} disabled={snap.busy || resetPending}
               onPress={() => { if (confirmCase) { setConfirmCase(false); actions.newCase(); } else setConfirmCase(true); }} />
-            <ConsoleButton label="Exit" position={[0.34, -0.245, 0.01]} width={0.2} onPress={onExit} />
+            <ConsoleButton label="Recenter" position={[-0.045, -0.245, 0.01]} width={0.17} onPress={onRecenter} />
+            <ConsoleButton label={`Voice ${snap.voice ? '✓' : '✕'}`} position={[0.13, -0.245, 0.01]} width={0.14}
+              tint={snap.voice ? 'tfDark' : 'tfBrass'} labelColor={snap.voice ? '#eee9df' : '#141817'}
+              onPress={actions.toggleVoice} />
+            <ConsoleButton label="Intro" position={[0.285, -0.245, 0.01]} width={0.13}
+              onPress={() => { setIntroPage(0); actions.openIntro(); }} />
+            <ConsoleButton label="Exit" position={[0.425, -0.245, 0.01]} width={0.11} onPress={onExit} />
           </ViroNode>
         </ViroNode>
       )}

@@ -18,9 +18,9 @@ export default function HomeScreen() {
           <Text style={styles.note}>Built for AR-capable phones and Meta Quest.</Text>
         </View>
         <View style={styles.section}>
-          <Text style={styles.heading}>The causal chain</Text>
-          <Text style={styles.body}>Past: cell and protection fuse.{ '\n' }Present: motor and telescope.{ '\n' }Future: the observatory&apos;s signal.</Text>
-          <Text style={styles.note}>Three clues, seven repairs, eighteen cases. Undo anything — the timeline remembers.</Text>
+          <Text style={styles.heading}>How a case works</Text>
+          <Text style={styles.body}>2026 shows which socket was wired. 2086&apos;s open sky shows the star. A plaque in the ruin records the band. Repair 1986 to match — and watch each era answer.</Text>
+          <Text style={styles.note}>Three clues, seven repairs, seventy-two cases. Undo anything — and the debrief remembers how you got there.</Text>
         </View>
         <View style={styles.section}>
           <Text style={styles.heading}>No headset?</Text>
