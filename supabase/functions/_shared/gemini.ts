@@ -18,7 +18,7 @@ export function createGeminiGenerator(config: { apiKey: string; model: string; f
       headers: { 'content-type': 'application/json', 'x-goog-api-key': config.apiKey },
       body: JSON.stringify({
         systemInstruction: { parts: [{ text: 'The keeper narrates a fictional observatory. Canonical puzzle instructions are rendered separately. Return the supplied factId and short atmospheric narration, not new rules, actions, instructions or claims about the real world. No tools are available.' }] },
-        contents: [{ role: 'user', parts: [{ text: JSON.stringify({ question: request.question, era: request.era, state: request.state, factId, canonicalFact: fact.text }) }] }],
+        contents: [{ role: 'user', parts: [{ text: JSON.stringify({ question: request.question, era: request.era, seed: request.seed, state: request.state, factId, canonicalFact: fact.text }) }] }],
         generationConfig: { maxOutputTokens: 256, responseMimeType: 'application/json', responseSchema: {
           type: 'OBJECT', properties: { factId: { type: 'STRING', enum: [factId] }, narration: { type: 'STRING' } }, required: ['factId', 'narration'],
         } },

@@ -42,9 +42,9 @@ function EraObservatory({ layer, interaction }: { layer: EraVisual; interaction:
   const focused = (field: PuzzleField) => layer.era === 'past' && (interaction?.selected === field || interaction?.highlights.includes(field));
   const body = layer.era === 'past' ? 'tfPast' : layer.era === 'present' ? 'tfPresent' : 'tfFuture';
   const state = layer.state;
-  const installedCell: Point = state.cell === 'main' ? [-0.23, 0.09, 0.26] : state.cell === 'spare' ? [-0.23, 0.09, 0.06] : [-0.28, 0.07, 0.39];
+  const installedCell: Point = state.cell === 'a' ? [-0.23, 0.09, 0.26] : state.cell === 'b' ? [-0.23, 0.09, 0.06] : [-0.28, 0.07, 0.39];
   const installedFuse: Point = state.fuse === 'protected' ? [-0.14, 0.07, 0.26] : state.fuse === 'bypass' ? [-0.14, 0.07, 0.06] : [-0.16, 0.05, 0.39];
-  const requestedYaw = state.alignment === 'target' ? 0 : state.alignment === 'left' ? -28 : 28;
+  const requestedYaw = state.alignment === 'centre' ? 0 : state.alignment === 'left' ? -28 : 28;
   const yaw = layer.era === 'past' || (layer.powered && state.gear === 'drive') ? requestedYaw : -28;
   return (
     <ViroNode position={[layer.x, 0, 0]} viroTag={`era-${layer.era}`}>
@@ -64,7 +64,7 @@ function EraObservatory({ layer, interaction }: { layer: EraVisual; interaction:
         <ViroSphere position={[0, 0, -0.25]} radius={0.045} widthSegmentCount={12} heightSegmentCount={8} scale={[1, 1, 0.15]} materials={focused('lens') ? 'tfSignal' : 'tfGlass'} onClick={() => select('lens')} visible={state.lens === 'optic'} />
       </ViroNode>
       <ViroSphere position={[0.13, 0.04, 0.39]} radius={0.045} widthSegmentCount={12} heightSegmentCount={8} scale={[1, 0.2, 1]} materials={focused('lens') ? 'tfSignal' : 'tfGlass'} onClick={() => select('lens')} visible={state.lens === 'home'} viroTag={`${layer.era}-lens`} />
-      <ViroBox position={installedCell} width={0.055} height={0.11} length={0.055} materials={focused('cell') ? 'tfSignal' : state.cell === 'spare' ? 'tfHazard' : 'tfBrass'} onClick={() => select('cell')} viroTag={`${layer.era}-cell`} />
+      <ViroBox position={installedCell} width={0.055} height={0.11} length={0.055} materials={focused('cell') ? 'tfSignal' : 'tfBrass'} onClick={() => select('cell')} viroTag={`${layer.era}-cell`} />
       <ViroBox position={installedFuse} width={0.025} height={0.08} length={0.025} materials={focused('fuse') ? 'tfSignal' : state.fuse === 'bypass' ? 'tfHazard' : 'tfLight'} onClick={() => select('fuse')} viroTag={`${layer.era}-fuse`} />
       <ViroBox position={[-0.22, 0.025, 0.26]} width={0.085} height={0.022} length={0.09} materials="tfDark" />
       <ViroNode position={state.gear === 'drive' ? [0.24, 0.17, 0.07] : [0.26, 0.05, 0.36]} onClick={() => select('gear')} viroTag={`${layer.era}-gear`}
@@ -77,7 +77,7 @@ function EraObservatory({ layer, interaction }: { layer: EraVisual; interaction:
       </ViroNode>
       <ViroBox position={[0.22, 0.055, 0.28]} width={0.13} height={0.1} length={0.12} materials={body} />
       <ViroSphere position={state.crystal === 'receiver' ? [0.22, 0.12, 0.28] : [0.27, 0.04, 0.39]} radius={0.036} widthSegmentCount={6} heightSegmentCount={6} materials={focused('crystal') || layer.signalRecovered ? 'tfSignal' : 'tfGlass'} onClick={() => select('crystal')} viroTag={`${layer.era}-crystal`} />
-      <ViroBox position={[0.22, 0.068, 0.35]} width={0.085} scale={[state.frequency === 'target' ? 1 : 0.33, 1, 1]} height={0.015} length={0.015} materials={focused('frequency') || layer.signalRecovered ? 'tfSignal' : 'tfDark'} onClick={() => select('frequency')} />
+      <ViroBox position={[state.frequency === 'low' ? 0.16 : state.frequency === 'mid' ? 0.22 : 0.28, 0.068, 0.35]} width={0.085} height={0.015} length={0.015} materials={focused('frequency') || layer.signalRecovered ? 'tfSignal' : 'tfDark'} onClick={() => select('frequency')} />
       <ViroBox position={[-0.27, 0.22, -0.25]} width={0.027} height={0.44} length={0.027} materials={layer.era === 'future' && !layer.powered ? 'tfOvergrown' : 'tfBrass'} />
       <ViroSphere position={[-0.27, 0.45, -0.25]} radius={0.045} widthSegmentCount={10} heightSegmentCount={8} materials={layer.era === 'future' && layer.powered ? 'tfLight' : 'tfDark'}
         animation={{ name: 'tfBeaconPulse', run: layer.era === 'future' && layer.powered, loop: true }} />

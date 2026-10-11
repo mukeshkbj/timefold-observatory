@@ -4,24 +4,20 @@ import { router } from 'expo-router';
 import { useEffect, useRef, useState } from 'react';
 import { Platform, ScrollView, StyleSheet, Text, useWindowDimensions, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { buildDebrief } from '../../shared/debrief';
 import { getFact, type KeeperReply, type KeeperRequest } from '../../shared/keeper';
 import { createKeeperClient } from '../../shared/keeperClient';
 import { createSaveQueue, decodeProgress } from '../../shared/progress';
-import { deriveWorld, fieldChapters, newGame, reduceGame, type Chapter, type Game, type GameAction, type TimeFoldState } from '../../shared/timefold';
+import { caseLabel, chapterContent, chapterFields, clueText, objectNames, placementChoices } from '../../shared/puzzle';
+import { clueChapters, deriveWorld, newGame, reduceGame, type Chapter, type ClueId, type Game, type GameAction } from '../../shared/timefold';
 import LabButton from './LabButton';
 
-const labKey = 'timefold.lab.progress.v1';
+const labKey = 'timefold.lab.progress.v2';
 const checkpointQueue = createSaveQueue(value => AsyncStorage.setItem(labKey, value));
 const chapters: { id: Chapter; title: string }[] = [{ id: 1, title: 'Restore power' }, { id: 2, title: 'Restore the sky' }, { id: 3, title: 'Recover the signal' }];
-const controls: { label: string; field: keyof TimeFoldState; options: { label: string; action: Extract<GameAction, { kind: 'change' }> }[] }[] = [
-  { label: 'Power cell', field: 'cell', options: [{ label: 'Cell: bench', action: { kind: 'change', field: 'cell', value: 'home' } }, { label: 'Cell: main socket', action: { kind: 'change', field: 'cell', value: 'main' } }, { label: 'Cell: spare socket', action: { kind: 'change', field: 'cell', value: 'spare' } }] },
-  { label: 'Protection fuse', field: 'fuse', options: [{ label: 'Fuse: bench', action: { kind: 'change', field: 'fuse', value: 'home' } }, { label: 'Fuse: protection socket', action: { kind: 'change', field: 'fuse', value: 'protected' } }, { label: 'Fuse: bypass', action: { kind: 'change', field: 'fuse', value: 'bypass' } }] },
-  { label: 'Drive gear', field: 'gear', options: [{ label: 'Gear: bench', action: { kind: 'change', field: 'gear', value: 'home' } }, { label: 'Gear: drive socket', action: { kind: 'change', field: 'gear', value: 'drive' } }] },
-  { label: 'Lens', field: 'lens', options: [{ label: 'Lens: bench', action: { kind: 'change', field: 'lens', value: 'home' } }, { label: 'Lens: optical mount', action: { kind: 'change', field: 'lens', value: 'optic' } }] },
-  { label: 'Alignment', field: 'alignment', options: [{ label: 'Alignment: left', action: { kind: 'change', field: 'alignment', value: 'left' } }, { label: 'Alignment: target', action: { kind: 'change', field: 'alignment', value: 'target' } }, { label: 'Alignment: right', action: { kind: 'change', field: 'alignment', value: 'right' } }] },
-  { label: 'Receiver crystal', field: 'crystal', options: [{ label: 'Crystal: bench', action: { kind: 'change', field: 'crystal', value: 'home' } }, { label: 'Crystal: receiver mount', action: { kind: 'change', field: 'crystal', value: 'receiver' } }] },
-  { label: 'Frequency', field: 'frequency', options: [{ label: 'Frequency: low', action: { kind: 'change', field: 'frequency', value: 'low' } }, { label: 'Frequency: target', action: { kind: 'change', field: 'frequency', value: 'target' } }, { label: 'Frequency: high', action: { kind: 'change', field: 'frequency', value: 'high' } }] },
-];
+const clues: readonly ClueId[] = ['wiring', 'sky', 'plaque'];
+const clueButtons: Readonly<Record<ClueId, string>> = { wiring: 'Inspect the 2026 room', sky: 'Inspect the open 2086 sky', plaque: 'Inspect the 2086 ruin' };
+function nextCaseSeed(seed: number) { return (seed + 1 + Math.floor(Math.random() * 17)) % 18; }
 type StorageStatus = { kind: 'loading' } | { kind: 'saving' } | { kind: 'ready'; message: string } | { kind: 'error'; message: string };
 type KeeperStatus = { kind: 'idle' | 'loading' } | { kind: 'shown'; reply: KeeperReply } | { kind: 'error'; message: string };
 
@@ -35,11 +31,11 @@ export default function LogicLab() {
   const [level, setLevel] = useState<KeeperRequest['hintLevel']>(1);
   const [storage, setStorage] = useState<StorageStatus>({ kind: 'loading' });
   const [keeper, setKeeper] = useState<KeeperStatus>({ kind: 'idle' });
-  const [reset, setReset] = useState<'session' | 'chapter' | null>(null);
+  const [reset, setReset] = useState<'session' | 'chapter' | 'case' | null>(null);
   const [showState, setShowState] = useState(false);
-  const [notice, setNotice] = useState('Choose a repair in the past to inspect its consequences.');
+  const [notice, setNotice] = useState('Read the derived eras for evidence, then repair the past.');
   const { width } = useWindowDimensions();
-  const world = deriveWorld(game.state);
+  const world = deriveWorld(game.state, game.scenario);
   const busy = storage.kind === 'loading' || storage.kind === 'saving';
 
   function clearKeeper() { owner.current++; setKeeper({ kind: 'idle' }); }
@@ -48,7 +44,9 @@ export default function LogicLab() {
     const next = reduceGame(current.current, action);
     if (next === current.current) return;
     replaceGame(next);
-    setNotice(`Arrangement changed. Revision ${next.revision}; ${next.history.length} undo steps.`);
+    setNotice(action.kind === 'inspect'
+      ? `Evidence recorded: ${clueText(next.scenario, action.clue).title}.`
+      : `Arrangement changed. Revision ${next.revision}; ${next.history.length} undo steps.`);
   }
   async function readCheckpoint() {
     setStorage({ kind: 'loading' });
@@ -85,13 +83,14 @@ export default function LogicLab() {
     setKeeper({ kind: 'loading' });
     const ask = createKeeperClient({ mode: 'authored', transport: null, timeoutMs: 10000, currentRevision: () => current.current.revision });
     try {
-      const result = await ask({ schemaVersion: 1, requestId: randomUUID(), state: current.current.state, revision: current.current.revision, question, hintLevel: level, era });
+      const result = await ask({ schemaVersion: 2, requestId: randomUUID(), seed: current.current.scenario.seed, state: current.current.state, revision: current.current.revision, question, hintLevel: level, era });
       if (!mounted.current || ticket !== owner.current || result.kind === 'stale') return;
       setKeeper({ kind: 'shown', reply: result.reply });
     } catch { if (mounted.current && ticket === owner.current) setKeeper({ kind: 'error', message: 'The authored explanation could not be prepared. Try again; no model request was made.' }); }
   }
   function confirmReset() {
-    if (reset === 'session') { replaceGame(newGame()); setChapter(1); setNotice('Memory session reset. The saved lab checkpoint is unchanged.'); }
+    if (reset === 'session') { replaceGame(newGame(current.current.scenario.seed)); setChapter(1); setNotice('Memory session reset to this case\'s beginning. The saved lab checkpoint is unchanged.'); }
+    else if (reset === 'case') { replaceGame(newGame(nextCaseSeed(current.current.scenario.seed))); setChapter(1); setNotice('A new case begins. Its answers are different — read the evidence again.'); }
     else if (reset === 'chapter') { change({ kind: 'resetChapter', chapter }); setNotice('Selected chapter reset. Prior chapter arrangements and learned unlocks are retained.'); }
     setReset(null);
   }
@@ -99,24 +98,42 @@ export default function LogicLab() {
   return (
     <SafeAreaView style={styles.screen}>
       <ScrollView contentContainerStyle={styles.content}>
-        <View style={styles.header}><Text style={styles.brand}>TIMEFOLD / LOCAL LAB</Text><LabButton label="Return home" onPress={() => router.replace('/')} /></View>
-        <Text accessibilityRole="header" style={styles.title}>Three histories.{ '\n' }One chain of causes.</Text>
-        <Text style={styles.description}>Inspect real domain rules and authored keeper responses. This is a 2D logic lab, not AR/VR rendering or live Gemini.</Text>
+        <View style={styles.header}><Text style={styles.brand}>TIMEFOLD / LOCAL LAB / {caseLabel(game.scenario)}</Text><View style={styles.row}><LabButton label="New case" disabled={busy} onPress={() => setReset('case')} /><LabButton label="Return home" onPress={() => router.replace('/')} /></View></View>
+        <Text accessibilityRole="header" style={styles.title}>Evidence from the future.{ '\n' }Repairs in the past.</Text>
+        <Text style={styles.description}>{chapterContent[chapter].objective} This is a 2D logic lab, not AR/VR rendering or live Gemini.</Text>
         {storage.kind === 'loading' && <Text accessibilityLiveRegion="polite" style={styles.notice}>Checking the isolated lab checkpoint…</Text>}
         <View style={[styles.timeline, width < 760 && styles.stack]}>
-          <View style={styles.era}><Text style={styles.eraTitle}>Past / editable</Text><Text style={styles.eraValue}>1986</Text><Text style={styles.body}>Cell: {game.state.cell}{ '\n' }Fuse: {game.state.fuse}{ '\n' }Gear: {game.state.gear}{ '\n' }Lens: {game.state.lens}</Text></View>
-          <View style={styles.era}><Text style={styles.eraTitle}>Present / derived</Text><Text style={styles.eraValue}>2026</Text><Text style={styles.body}>Motor: {world.powered ? 'energized' : 'silent'}{ '\n' }Instrument: {world.aimed ? 'aligned' : 'incomplete'}</Text></View>
-          <View style={styles.era}><Text style={styles.eraTitle}>Future / derived</Text><Text style={styles.eraValue}>2086</Text><Text style={styles.body}>Beacon: {world.powered ? 'illuminated' : 'dark'}{ '\n' }Signal: {world.signalRecovered ? 'recovered' : 'waiting'}</Text></View>
+          <View style={styles.era}><Text style={styles.eraTitle}>Past / editable</Text><Text style={styles.eraValue}>1986</Text><Text style={styles.body}>Cell: {game.state.cell === 'home' ? 'bench' : `socket ${game.state.cell.toUpperCase()}`}{ '\n' }Fuse: {game.state.fuse}{ '\n' }Gear: {game.state.gear}{ '\n' }Lens: {game.state.lens}{ '\n' }Alignment: {game.state.alignment}{ '\n' }Crystal: {game.state.crystal}{ '\n' }Frequency: {game.state.frequency}</Text></View>
+          <View style={styles.era}><Text style={styles.eraTitle}>Present / derived</Text><Text style={styles.eraValue}>2026</Text><Text style={styles.body}>Motor: {world.hazard ? 'burnt' : world.powered ? 'energized' : 'silent'}{ '\n' }Circuit: {world.hazard ? 'bypass arced' : game.state.fuse === 'protected' ? 'protected' : 'open'}{ '\n' }Instrument: {world.aimed ? 'aligned' : 'incomplete'}</Text></View>
+          <View style={styles.era}><Text style={styles.eraTitle}>Future / derived</Text><Text style={styles.eraValue}>2086</Text><Text style={styles.body}>Beacon: {world.powered ? 'illuminated' : world.hazard ? 'lost to the burn' : 'dark'}{ '\n' }Signal: {world.signalRecovered ? 'recovered' : 'waiting'}</Text></View>
         </View>
         <Text accessibilityLiveRegion="polite" style={styles.notice}>{notice}</Text>
         <View style={styles.row}>{chapters.map(item => <LabButton key={item.id} label={`Chapter ${item.id}: ${item.title}`} selected={chapter === item.id} disabled={busy || item.id > game.unlocked} onPress={() => { clearKeeper(); setChapter(item.id); }} />)}</View>
         <View style={styles.section}>
+          <Text accessibilityRole="header" style={styles.heading}>Evidence</Text>
+          <Text style={styles.description}>The answers live downstream. Inspect the derived eras before you touch the workbench.</Text>
+          <View style={styles.row}>{clues.map(clue => <LabButton key={clue} label={game.evidence.includes(clue) ? `Review: ${clueText(game.scenario, clue).title}` : clueButtons[clue]} disabled={busy || clueChapters[clue] > game.unlocked} onPress={() => change({ kind: 'inspect', clue })} />)}</View>
+          {game.evidence.length === 0 && <Text style={styles.body}>No evidence collected yet. Inspections unlock as chapters do.</Text>}
+          {game.evidence.map(clue => { const text = clueText(game.scenario, clue); return (
+            <View key={clue} style={styles.reply}><Text style={styles.provenance}>{text.era === 'present' ? 'EVIDENCE / 2026' : 'EVIDENCE / 2086'}</Text><Text style={styles.replyText}>{text.title}</Text><Text style={styles.body}>{text.detail}</Text></View>
+          ); })}
+        </View>
+        <View style={styles.section}>
           <Text accessibilityRole="header" style={styles.heading}>Past workbench</Text>
           <Text style={styles.description}>These controls commit logical placements. They do not test touch dragging, controller input or physical anchoring.</Text>
-          {controls.filter(control => fieldChapters[control.field] === chapter).map(control => <View key={control.field} style={styles.control}><Text style={styles.controlLabel}>{control.label}</Text><View style={styles.row}>{control.options.map(option => <LabButton key={option.label} label={option.label} selected={game.state[control.field] === option.action.value} disabled={busy} onPress={() => change(option.action)} />)}</View></View>)}
+          {chapterFields[chapter].map(field => <View key={field} style={styles.control}><Text style={styles.controlLabel}>{objectNames[field]}</Text><View style={styles.row}>{placementChoices(field).map(option => <LabButton key={option.label} label={option.label} selected={game.state[field] === option.action.value} disabled={busy} onPress={() => change(option.action)} />)}</View></View>)}
           <View style={styles.row}><LabButton label="Undo last repair" disabled={busy || !game.history.length} onPress={() => change({ kind: 'undo' })} /><LabButton label="Reset selected chapter" disabled={busy} onPress={() => setReset('chapter')} /><LabButton label="Reset lab session" disabled={busy} onPress={() => setReset('session')} /></View>
-          {reset && <View style={styles.confirm}><Text style={styles.body}>{reset === 'session' ? 'Reset this memory session? The saved lab checkpoint will remain unchanged.' : 'Reset only the selected chapter? Earlier chapter arrangements and learned unlocks remain; this reset can be undone.'}</Text><View style={styles.row}><LabButton label="Cancel reset" onPress={() => setReset(null)} /><LabButton label={reset === 'session' ? 'Confirm session reset' : 'Confirm chapter reset'} primary disabled={busy} onPress={confirmReset} /></View></View>}
+          {reset && <View style={styles.confirm}><Text style={styles.body}>{reset === 'session' ? 'Reset this memory session to the start of this case? The saved lab checkpoint will remain unchanged.' : reset === 'case' ? 'Abandon this case and open a new one? The answers will differ; the saved lab checkpoint will remain unchanged.' : 'Reset only the selected chapter? Earlier chapter arrangements and learned unlocks remain; this reset can be undone.'}</Text><View style={styles.row}><LabButton label="Cancel" onPress={() => setReset(null)} /><LabButton label={reset === 'session' ? 'Confirm session reset' : reset === 'case' ? 'Confirm new case' : 'Confirm chapter reset'} primary disabled={busy} onPress={confirmReset} /></View></View>}
         </View>
+        {world.signalRecovered && (() => { const debrief = buildDebrief(game); return (
+          <View style={styles.section}>
+            <Text accessibilityRole="header" style={styles.heading}>Case debrief / {debrief.caseLabel}</Text>
+            <View style={styles.reply}><Text style={styles.provenance}>{debrief.rating.toUpperCase()}</Text><Text style={styles.replyText}>{debrief.lesson}</Text>
+              <Text style={styles.body}>Moves {debrief.moves} · Misfires {debrief.misfires} · Hazards {debrief.hazards} · Undos {debrief.undos}{ '\n' }Evidence found {debrief.evidenceFound}/{debrief.evidenceTotal} · Evidence-first repairs {debrief.evidenceFirst}</Text>
+              <Text selectable style={styles.state}>{debrief.chain.join('\n')}</Text>
+            </View>
+          </View>
+        ); })()}
         <View style={styles.section}>
           <Text accessibilityRole="header" style={styles.heading}>The keeper</Text>
           <Text style={styles.description}>Authored mode only. No authentication, backend or model request is made by this lab.</Text>

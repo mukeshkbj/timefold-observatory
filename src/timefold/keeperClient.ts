@@ -27,7 +27,7 @@ function nativeTransport(): KeeperTransport | null {
 export function createNativeKeeperClient(mode: 'authored' | 'live', currentRevision: () => number) {
   const ask = createKeeperClient({ mode, currentRevision, timeoutMs: 10000, transport: mode === 'live' ? nativeTransport() : null });
   return (game: Game, question: KeeperRequest['question'], hintLevel: KeeperRequest['hintLevel'], era: KeeperRequest['era']) => {
-    const request = parseKeeperRequest({ schemaVersion: 1, requestId: randomUUID(), state: game.state, revision: game.revision, question, hintLevel, era });
+    const request = parseKeeperRequest({ schemaVersion: 2, requestId: randomUUID(), seed: game.scenario.seed, state: game.state, revision: game.revision, question, hintLevel, era });
     if (!request) throw new Error('Keeper request could not be constructed.');
     return ask(request);
   };

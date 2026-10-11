@@ -39,8 +39,8 @@ export default function TimeFoldContent({ onExit }: { onExit: () => void }) {
     current.current = next;
     setSession(next);
     if (next.game !== before.game) {
-      const bypassed = next.game.state.cell === 'main' && next.game.state.fuse === 'bypass';
-      setSfx({ id: ++sfxId.current, hazard: bypassed });
+      const hazard = deriveWorld(next.game.state, next.game.scenario).hazard;
+      setSfx({ id: ++sfxId.current, hazard });
       setHighlights(next.trace?.highlights ?? []);
       setKeeper('The timeline shifted. Ask the keeper for a hint or an explanation.');
       const completed = chapterComplete(next.game, next.chapter) && !chapterComplete(before.game, next.chapter);
@@ -58,17 +58,17 @@ export default function TimeFoldContent({ onExit }: { onExit: () => void }) {
   }
   function ask(question: KeeperRequest['question']) {
     const game = current.current.game;
-    const request = { schemaVersion: 1, requestId: randomUUID(), state: game.state, revision: game.revision, question, hintLevel: level, era: 'past' } satisfies KeeperRequest;
+    const request = { schemaVersion: 2, requestId: randomUUID(), seed: game.scenario.seed, state: game.state, revision: game.revision, question, hintLevel: level, era: 'past' } satisfies KeeperRequest;
     const fact = getFact(primaryFact(request));
     setKeeper(fact.text);
     setHighlights(fact.highlights);
   }
   const trace = session.trace;
-  const world = deriveWorld(session.game.state);
+  const world = deriveWorld(session.game.state, session.game.scenario);
   return <ViroNode>
     <ViroOmniLight color="#ffd9a8" intensity={430} position={[0, 2.0, 1.6]} attenuationStartDistance={0.5} attenuationEndDistance={4.2} />
     <ViroOmniLight color="#9fd8c8" intensity={140} position={[0.6, 0.9, -0.8]} attenuationStartDistance={0.3} attenuationEndDistance={3} />
-    <ObservatoryVisuals layers={buildEraVisuals(session.game.state)} interaction={{ selected: session.selected, highlights, onSelect: field => dispatch({ kind: 'select', field }), onPlace: index => dispatch({ kind: 'placeChoice', index }) }} />
+    <ObservatoryVisuals layers={buildEraVisuals(session.game.state, session.game.scenario)} interaction={{ selected: session.selected, highlights, onSelect: field => dispatch({ kind: 'select', field }), onPlace: index => dispatch({ kind: 'placeChoice', index }) }} />
     <SceneLabel text="TIMEFOLD / THE LAST OBSERVATORY" position={[0, 1.32, 0]} width={2.4} height={0.13} color="#eee9df" size={0.5} />
     <SceneLabel text={chapterContent[session.chapter].objective} position={[0, 1.16, 0]} width={2.4} height={0.17} color="#b6c1b8" size={0.3} />
     <ViroNode position={[0, -0.06, 0.15]} scale={[0.7, 0.7, 0.7]}>

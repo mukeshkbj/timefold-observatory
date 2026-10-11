@@ -8,10 +8,10 @@ export default function HomeScreen() {
       <ScrollView contentContainerStyle={styles.content}>
         <Text style={styles.brand}>TIMEFOLD</Text>
         <Text style={styles.title}>The Last Observatory</Text>
-        <Text style={styles.subtitle}>Change the past. Hold the consequences.</Text>
+        <Text style={styles.subtitle}>Evidence from the future. Repairs in the past.</Text>
         <View style={styles.section}>
           <Text style={styles.heading}>The observatory</Text>
-          <Text style={styles.body}>One room, three eras: 1986, 2026, 2086. Repair the workbench in the past and watch the present mechanism — and the future it makes possible — follow.</Text>
+          <Text style={styles.body}>One room, three eras: 1986, 2026, 2086. Each case hides its answers downstream — read the evidence in 2026 and 2086, then repair the 1986 workbench and watch the consequences follow.</Text>
           <Pressable accessibilityRole="button" onPress={() => router.push({ pathname: '/play', params: { view: 'observatory' } })} style={styles.button}>
             <Text style={styles.buttonText}>Enter the observatory</Text>
           </Pressable>
@@ -20,7 +20,7 @@ export default function HomeScreen() {
         <View style={styles.section}>
           <Text style={styles.heading}>The causal chain</Text>
           <Text style={styles.body}>Past: cell and protection fuse.{ '\n' }Present: motor and telescope.{ '\n' }Future: the observatory&apos;s signal.</Text>
-          <Text style={styles.note}>Seven repairs across three chapters. Undo anything — the timeline remembers.</Text>
+          <Text style={styles.note}>Three clues, seven repairs, eighteen cases. Undo anything — the timeline remembers.</Text>
         </View>
         <View style={styles.section}>
           <Text style={styles.heading}>No headset?</Text>

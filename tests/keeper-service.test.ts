@@ -1,11 +1,12 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
-import { initialState } from '../shared/timefold.ts';
+import { initialStateFor, scenarioFromSeed } from '../shared/timefold.ts';
 import { authoredReply, type KeeperRequest } from '../shared/keeper.ts';
 import { createKeeperHandler, type KeeperDependencies, type Reservation } from '../supabase/functions/_shared/keeperService.ts';
 
 const body: KeeperRequest = {
-  schemaVersion: 1, requestId: '00000000-0000-4000-8000-000000000001', state: initialState,
+  schemaVersion: 2, requestId: '00000000-0000-4000-8000-000000000001', seed: 0,
+  state: initialStateFor(scenarioFromSeed(0)),
   revision: 0, question: 'hint', hintLevel: 1, era: 'past',
 };
 const user = '00000000-0000-4000-8000-000000000002';

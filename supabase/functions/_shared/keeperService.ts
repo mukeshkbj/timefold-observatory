@@ -42,7 +42,7 @@ export async function readBoundedJson(request: Request | Response, maximum: numb
 }
 
 export async function requestFingerprint(request: KeeperRequest): Promise<string> {
-  const data = JSON.stringify({ schemaVersion: request.schemaVersion, state: request.state, revision: request.revision, question: request.question, hintLevel: request.hintLevel, era: request.era });
+  const data = JSON.stringify({ schemaVersion: request.schemaVersion, seed: request.seed, state: request.state, revision: request.revision, question: request.question, hintLevel: request.hintLevel, era: request.era });
   const digest = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(data));
   return Array.from(new Uint8Array(digest), byte => byte.toString(16).padStart(2, '0')).join('');
 }
